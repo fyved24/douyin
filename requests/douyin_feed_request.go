@@ -1,9 +1,9 @@
 package requests
 
 import (
-	"fmt"
 	"github.com/fyved24/douyin/responses"
 	"github.com/gin-gonic/gin"
+	"log"
 	"net/http"
 	"strconv"
 	"time"
@@ -30,7 +30,7 @@ func (r *DouyinFeedRequest) check(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, responses.CommonResponse{StatusCode: 1})
 	}
 	latestTime = time.Unix(0, intTime*1e6)
-	fmt.Println(token)
+	log.Printf("token: %s, latestTime: %v", token, latestTime )
 	r.LatestTime = latestTime
 	r.Token = token
 

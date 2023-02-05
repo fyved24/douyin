@@ -1,4 +1,4 @@
-package services
+package video
 
 import (
 	"github.com/fyved24/douyin/models"
@@ -7,7 +7,7 @@ import (
 )
 
 func FeedVideoList(latestTime time.Time) (*responses.DouyinFeedResponse, error) {
-	videos, err := models.QueryFeedVideoListByLatestTime(10, latestTime)
+	videos, err := models.QueryFeedVideoListByLatestTime(30, latestTime)
 	nextTime := time.Now().Unix() / 1e6
 	return &responses.DouyinFeedResponse{
 		CommonResponse: responses.CommonResponse{StatusCode: 0},
