@@ -1,8 +1,9 @@
 package models
 
 import (
-	"gorm.io/gorm"
 	"time"
+
+	"gorm.io/gorm"
 )
 
 type Video struct {
@@ -11,8 +12,8 @@ type Video struct {
 	Author        User `gorm:"foreignKey:AuthorID"`
 	PlayUrl       string
 	CoverUrl      string
-	FavoriteCount int64
-	CommentCount  int64
+	FavoriteCount uint
+	CommentCount  uint
 	IsFavorite    bool
 	Title         string
 	Comments      []Comment

@@ -14,7 +14,7 @@ var followers = "followers"
 var users = "users"
 
 // IsFollower 判断HostId是否有GuestId这个粉丝
-func IsFollower(HostId int64, GuestId int64) bool {
+func IsFollower(HostId uint, GuestId uint) bool {
 	//1.数据模型准备
 	var relationExist = &models.Follower{}
 	//2.查询粉丝表中粉丝是否存在
@@ -29,7 +29,7 @@ func IsFollower(HostId int64, GuestId int64) bool {
 }
 
 // IncreaseFollowerCount 增加HostId的粉丝数（Host_id 的 follow_count+1）
-func IncreaseFollowerCount(HostId int64) error {
+func IncreaseFollowerCount(HostId uint) error {
 	if err := models.DB.Model(&models.User{}).
 		Where("id=?", HostId).
 		Update("follower_count", gorm.Expr("follower_count+?", 1)).Error; err != nil {
@@ -39,7 +39,7 @@ func IncreaseFollowerCount(HostId int64) error {
 }
 
 // DecreaseFollowerCount 增加HostId的粉丝数（Host_id 的 follow_count-1）
-func DecreaseFollowerCount(HostId int64) error {
+func DecreaseFollowerCount(HostId uint) error {
 	if err := models.DB.Model(&models.User{}).
 		Where("id=?", HostId).
 		Update("follower_count", gorm.Expr("follower_count-?", 1)).Error; err != nil {
@@ -49,7 +49,7 @@ func DecreaseFollowerCount(HostId int64) error {
 }
 
 // CreateFollower 创建粉丝
-func CreateFollower(HostId int64, GuestId int64) error {
+func CreateFollower(HostId uint, GuestId uint) error {
 
 	//1.Following数据模型准备
 	newFollower := models.Follower{
@@ -66,7 +66,7 @@ func CreateFollower(HostId int64, GuestId int64) error {
 }
 
 // DeleteFollower 删除粉丝
-func DeleteFollower(HostId int64, GuestId int64) error {
+func DeleteFollower(HostId uint, GuestId uint) error {
 	//1.Following数据模型准备
 	newFollower := models.Follower{
 		HostID:     HostId,
@@ -84,7 +84,7 @@ func DeleteFollower(HostId int64, GuestId int64) error {
 }
 
 // FollowerList  获取粉丝表
-func FollowerList(HostId int64) ([]models.User, error) {
+func FollowerList(HostId uint) ([]models.User, error) {
 	//1.userList数据模型准备
 	var userList []models.User
 	//2.查HostId的关注表

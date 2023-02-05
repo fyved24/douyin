@@ -4,7 +4,7 @@ import "gorm.io/gorm"
 
 type Comment struct {
 	gorm.Model
-	VideoID int64
+	VideoID uint
 	UserID  uint
 	Content string
 }

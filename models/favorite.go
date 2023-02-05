@@ -4,7 +4,7 @@ import "gorm.io/gorm"
 
 type Favorite struct {
 	gorm.Model
-	UserID  int64
-	VideoID int64
+	UserID  uint
+	VideoID uint
 	status  bool //  1-点赞，0-未点赞
 }

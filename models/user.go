@@ -6,10 +6,10 @@ type User struct {
 	gorm.Model
 	Name           string
 	Password       string `json:"-"`
-	FollowCount    int64
-	FollowerCount  int64
-	TotalFavorited int64
-	FavoriteCount  int64
+	FollowCount    uint
+	FollowerCount  uint
+	TotalFavorited uint
+	FavoriteCount  uint
 	Videos         []Video   `gorm:"foreignKey:AuthorID" json:"-"`
 	Comments       []Comment `json:"-"`
 }

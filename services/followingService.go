@@ -12,7 +12,7 @@ import (
 var followings = "followings"
 
 // IsFollowing 判断HostId是否关注GuestId
-func IsFollowing(HostId int64, GuestId int64) bool {
+func IsFollowing(HostId uint, GuestId uint) bool {
 	var relationExist = &models.Following{}
 	//判断关注是否存在
 	if err := models.DB.Model(&models.Following{}).
@@ -26,7 +26,7 @@ func IsFollowing(HostId int64, GuestId int64) bool {
 }
 
 // IncreaseFollowCount 增加HostId的关注数（Host_id 的 follow_count+1）
-func IncreaseFollowCount(HostId int64) error {
+func IncreaseFollowCount(HostId uint) error {
 	if err := models.DB.Model(&models.User{}).
 		Where("id=?", HostId).
 		Update("follow_count", gorm.Expr("follow_count+?", 1)).Error; err != nil {
@@ -36,7 +36,7 @@ func IncreaseFollowCount(HostId int64) error {
 }
 
 // DecreaseFollowCount 减少HostId的关注数（Host_id 的 follow_count-1）
-func DecreaseFollowCount(HostId int64) error {
+func DecreaseFollowCount(HostId uint) error {
 	if err := models.DB.Model(&models.User{}).
 		Where("id=?", HostId).
 		Update("follow_count", gorm.Expr("follow_count-?", 1)).Error; err != nil {
@@ -46,7 +46,7 @@ func DecreaseFollowCount(HostId int64) error {
 }
 
 // CreateFollowing 创建关注
-func CreateFollowing(HostId int64, GuestId int64) error {
+func CreateFollowing(HostId uint, GuestId uint) error {
 
 	//1.Following数据模型准备
 	newFollowing := models.Following{
@@ -62,7 +62,7 @@ func CreateFollowing(HostId int64, GuestId int64) error {
 }
 
 // DeleteFollowing 删除关注
-func DeleteFollowing(HostId int64, GuestId int64) error {
+func DeleteFollowing(HostId uint, GuestId uint) error {
 	//1.Following数据模型准备
 	deleteFollowing := models.Following{
 		HostID:   HostId,
@@ -78,7 +78,7 @@ func DeleteFollowing(HostId int64, GuestId int64) error {
 }
 
 // FollowAction 关注操作
-func FollowAction(HostId int64, GuestId int64, actionType int64) error {
+func FollowAction(HostId uint, GuestId uint, actionType uint) error {
 	//创建关注操作
 	if actionType == 1 {
 		//判断关注是否存在
@@ -150,7 +150,7 @@ func FollowAction(HostId int64, GuestId int64, actionType int64) error {
 }
 
 // FollowingList 获取关注表
-func FollowingList(HostId int64) ([]models.User, error) {
+func FollowingList(HostId uint) ([]models.User, error) {
 	//1.userList数据模型准备
 	var userList []models.User
 	//2.查HostId的关注表
