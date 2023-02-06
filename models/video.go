@@ -23,3 +23,6 @@ func QueryFeedVideoListByLatestTime(limit int, latestTime time.Time) (*[]Video, 
 	err := DB.Model(&Video{}).Preload("Author").Where("created_at<?", latestTime).Limit(limit).Find(&videos).Error
 	return &videos, err
 }
+func SaveVideo(video *Video) {
+	DB.Create(video)
+}

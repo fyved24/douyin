@@ -8,5 +8,5 @@ import (
 func InitRouter(app *gin.Engine) {
 	douyin := app.Group("/douyin")
 	douyin.GET("/feed/", video.FeedVideoList)
-	douyin.POST("/publish/action/", video.PublishVideo)
+	douyin.POST("/publish/action/", video.PublishVideoHandler)
 }
