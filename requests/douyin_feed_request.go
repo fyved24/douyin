@@ -22,16 +22,21 @@ func NewDouyinFeedRequest(c *gin.Context) *DouyinFeedRequest {
 
 // 数据校验
 func (r *DouyinFeedRequest) check(c *gin.Context) {
+	var intTime int64
+	var err error
 	timestamp := c.Query("latest_time")
-	token := c.Query("token")
-	var latestTime time.Time
-	intTime, err := strconv.ParseInt(timestamp, 10, 64)
+	latestTime := time.Now()
+	if timestamp != "" {
+		intTime, err = strconv.ParseInt(timestamp, 10, 64)
+		latestTime = time.Unix(0, intTime*1e6)
+	}
 	if err != nil {
 		c.JSON(http.StatusBadRequest, responses.CommonResponse{StatusCode: 1})
 	}
-	latestTime = time.Unix(0, intTime*1e6)
-	log.Printf("token: %s, latestTime: %v", token, latestTime )
 	r.LatestTime = latestTime
+
+	token := c.Query("token")
 	r.Token = token
+	log.Printf("token: %s, latestTime: %v", token, latestTime)
 
 }

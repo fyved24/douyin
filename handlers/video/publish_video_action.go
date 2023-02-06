@@ -10,19 +10,26 @@ import (
 	"path/filepath"
 )
 
+var (
+	LocalStorage     = "local_storage/"
+	FileServerPrefix = "http://192.168.31.80:8080/file/"
+)
+
 func PublishVideoHandler(c *gin.Context) {
 	req := requests.NewDouyinPublishActionRequest(c)
 
 	file, _ := c.FormFile("data")
 	ext := filepath.Ext(file.Filename)
-	videoFilePath := utils.NewFileName(req.UserID) + ext
+	filename := utils.NewFileName(req.UserID) + ext
+	videoFilePath := LocalStorage + filename
+	videoFileURL := FileServerPrefix + filename
 	err := c.SaveUploadedFile(file, videoFilePath)
 	if err != nil {
 		return
 	}
 	video := &models.Video{
 		AuthorID: req.UserID,
-		PlayUrl:  videoFilePath,
+		PlayUrl:  videoFileURL,
 		Title:    req.Title,
 	}
 	publishVideosRes, _ := videoService.SavePublishVideo(video)
