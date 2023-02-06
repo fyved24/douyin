@@ -27,7 +27,7 @@ func CreateToken(userId uint, userName string) (string, error) {
 		StandardClaims: jwt.StandardClaims{
 			ExpiresAt: expireTime.Unix(), //过期时间戳
 			IssuedAt:  nowTime.Unix(),    //当前时间戳
-			Issuer:    "henrik",          //颁发者签名
+			Issuer:    "user",            //颁发者签名
 			Subject:   "userToken",       //签名主题
 		},
 	}
