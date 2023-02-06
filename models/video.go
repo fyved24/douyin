@@ -1,21 +1,20 @@
 package models
 
 import (
-	"gorm.io/gorm"
 	"time"
 )
 
 type Video struct {
-	gorm.Model
-	AuthorID      uint `json:"-"`
-	Author        User `gorm:"foreignKey:AuthorID"`
-	PlayUrl       string
-	CoverUrl      string
-	FavoriteCount int64
-	CommentCount  int64
-	IsFavorite    bool
-	Title         string
-	Comments      []Comment
+	Model
+	AuthorID      uint      `json:"-"`
+	Author        User      `gorm:"foreignKey:AuthorID"`
+	PlayUrl       string    `json:"play_url"`
+	CoverUrl      string    `json:"cover_url"`
+	FavoriteCount int64     `json:"favorite_count"`
+	CommentCount  int64     `json:"comment_count"`
+	IsFavorite    bool      `json:"is_favorite"`
+	Title         string    `json:"title"`
+	Comments      []Comment `json:"comments"`
 }
 
 func QueryFeedVideoListByLatestTime(limit int, latestTime time.Time) (*[]Video, error) {

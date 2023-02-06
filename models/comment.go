@@ -1,10 +1,8 @@
 package models
 
-import "gorm.io/gorm"
-
 type Comment struct {
-	gorm.Model
-	VideoID int64
-	UserID  uint
-	Content string
+	Model
+	VideoID int64  `json:"video_id"`
+	UserID  uint   `json:"user_id"`
+	Content string `json:"content"`
 }
