@@ -46,21 +46,27 @@ func getTestUserToken(userID uint, logined bool, expired bool) string {
 	if expired {
 		claims.ExpiresAt = claims.IssuedAt
 	}
-	token := jwt.NewWithClaims(jwt.SigningMethodES256, claims)
-	ss, _ := token.SignedString(services.MySecretKey)
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	ss, err := token.SignedString(services.MySecretKey)
+	if err != nil {
+		panic(err)
+	}
 	return ss
 }
+
+const BIG_UINT = 11
 
 // 给数据库生成一些用户和视频
 func makeSomeUsersAndVideos() (users []models.User, videos []models.Video) {
 	rand.Seed(time.Now().UnixNano())
-	count := rand.Int31n(100000)
+	count := rand.Int31n(BIG_UINT)
 	users = make([]models.User, count)
 	videos = make([]models.Video, count)
 	// 生成一些用户
 	for idx := range users {
 		name, _ := uuid.GenerateUUID()
-		flwCnt, flwrCnt := rand.Int31(), rand.Int31()
+		// flwCnt, flwrCnt := rand.Int31(), rand.Int31()
+		flwCnt, flwrCnt := 0, 0
 		users[idx] = models.User{
 			Name:          name,
 			FollowCount:   int64(flwCnt),
@@ -80,4 +86,24 @@ func makeSomeUsersAndVideos() (users []models.User, videos []models.Video) {
 	}
 	models.DB.Create(&videos)
 	return
+}
+
+func makeSomeFollows(users []models.User) map[[2]int]struct{} {
+	rand.Seed(time.Now().UnixNano())
+	following := make(map[[2]int]struct{})
+	for i := 0; i < BIG_UINT*2; i++ {
+		host, fl := rand.Intn(len(users)), rand.Intn(len(users))
+		key := [2]int{host, fl}
+		if _, visited := following[key]; host == fl || visited {
+			continue
+		}
+		following[key] = struct{}{}
+		models.DB.Create(&models.Following{HostID: int64(users[host].ID), FollowID: int64(users[fl].ID)})
+		models.DB.Create(&models.Follower{HostID: int64(users[fl].ID), FollowerID: int64(users[host].ID)})
+		users[host].FollowCount++
+		users[fl].FollowerCount++
+		models.DB.Model(&users[host]).Update("follow_count", users[host].FollowCount)
+		models.DB.Model(&users[fl]).Update("follower_count", users[fl].FollowerCount)
+	}
+	return following
 }

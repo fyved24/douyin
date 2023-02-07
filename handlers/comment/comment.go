@@ -61,7 +61,7 @@ func CommentAction(c *gin.Context) {
 			})
 			return
 		}
-		c.JSON(http.StatusOK, responses.CommentActionResponse{CommonResponse: responses.CommonResponse{StatusCode: COMMENT_STATUS_CODE_SUCCESS},
+		c.JSON(http.StatusOK, responses.CommentActionResponse{CommonResponse: responses.CommonResponse{StatusCode: COMMENT_STATUS_CODE_SUCCESS, StatusMsg: STATUS_MSG_SUCCEED},
 			Comment: *respComment})
 	case requests.COMMENT_DELETE:
 		// 用户删除评论操作

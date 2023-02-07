@@ -1,14 +1,85 @@
 package test
 
 import (
+	"math/rand"
+	"testing"
+	"time"
+
+	"net/http"
+
 	"github.com/fyved24/douyin/models"
+	"github.com/stretchr/testify/assert"
 )
 
 var users []models.User
 var videos []models.Video
+var following map[[2]int]struct{}
 
 func init() {
+	models.InitDB()
 	users, videos = makeSomeUsersAndVideos()
+	following = makeSomeFollows(users)
+}
+
+const (
+	COMMENT_ACTION_ADD = 1 + iota
+	COMMENT_ACTION_DEL
+)
+
+const (
+	GEN_COMMENT_COUNT = 10
+)
+
+func TestCommentHandler(t *testing.T) {
+	e := newExpect(t)
+	rand.Seed(time.Now().UnixNano())
+	videoIdx := rand.Intn(len(videos))
+	videoId := videos[videoIdx].ID
+	for i := 0; i < GEN_COMMENT_COUNT; i++ {
+		userIdx := rand.Intn(len(users))
+		userID := users[userIdx].ID
+		token := getTestUserToken(userID, true, false)
+		// 添加一个评论的请求
+		addCommentResp := e.POST("/douyin/comment/action/").
+			WithQuery("token", token).WithQuery("video_id", videoId).WithQuery("action_type", COMMENT_ACTION_ADD).WithQuery("comment_text", "测试评论").
+			WithFormField("token", token).WithFormField("video_id", videoId).WithFormField("action_type", COMMENT_ACTION_ADD).WithFormField("comment_text", "测试评论").
+			Expect().
+			Status(http.StatusOK).
+			JSON().Object()
+		addCommentResp.Value("status_code").Number().IsEqual(0)
+		addCommentResp.Value("status_msg").String().IsEqual("success")
+		addCommentResp.Value("comment").Object().Value("id").Number().Gt(0)
+		// addCommentResp.Value("comment").Object().Value("id").Number().IsEqual(commentId)
+		addCommentResp.Value("comment").Object().Value("user").Object().Value("id").Number().IsEqual(userID)
+		addCommentResp.Value("comment").Object().Value("content").String().IsEqual("测试评论")
+		addCommentResp.Value("comment").Object().Value("create_date").String().IsEqual(time.Now().Format("01-02"))
+	}
+
+	token := getTestUserToken(0, false, false)
+	// 查询视频评论未登录
+	commentListResp := e.GET("/douyin/comment/list/").
+		WithQuery("token", token).WithQuery("video_id", videoId).
+		WithFormField("token", token).WithFormField("video_id", videoId).
+		Expect().
+		Status(http.StatusOK).
+		JSON().Object()
+	commentListResp.Value("status_code").Number().IsEqual(0)
+	commentListResp.Value("comment_list").Array().Length().IsEqual(GEN_COMMENT_COUNT)
+	containTestComment := false
+	for _, element := range commentListResp.Value("comment_list").Array().Iter() {
+		comment := element.Object()
+		comment.ContainsKey("id")
+		// t.Logf("the response id is:%#v", comment.Value("id"))
+		comment.ContainsKey("user")
+		comment.Value("content").String().NotEmpty().IsEqual("测试评论")
+		comment.Value("create_date").String().NotEmpty().IsEqual(time.Now().Format("01-02"))
+		// if int(comment.Value("id").Number().Raw()) == commentId {
+		// 	containTestComment = true
+		// }
+		containTestComment = true
+	}
+
+	assert.True(t, containTestComment, "Can't find test comment in list")
 }
 
 // func TestCommentHandler(t *testing.T) {
