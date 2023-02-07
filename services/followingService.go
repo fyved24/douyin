@@ -16,7 +16,7 @@ func IsFollowing(HostId uint, GuestId uint) bool {
 	var relationExist = &models.Following{}
 	//判断关注是否存在
 	if err := models.DB.Model(&models.Following{}).
-		Where("host_id=? AND guest_id=?", HostId, GuestId).
+		Where("host_id=? AND follow_id=?", HostId, GuestId).
 		First(&relationExist).Error; errors.Is(err, gorm.ErrRecordNotFound) {
 		//关注不存在
 		return false
@@ -70,7 +70,7 @@ func DeleteFollowing(HostId uint, GuestId uint) error {
 	}
 
 	//2.删除following
-	if err := models.DB.Model(&models.Following{}).Where("host_id=? AND guest_id=?", HostId, GuestId).Delete(&deleteFollowing).Error; err != nil {
+	if err := models.DB.Model(&models.Following{}).Where("host_id=? AND follow_id=?", HostId, GuestId).Delete(&deleteFollowing).Error; err != nil {
 		return err
 	}
 
@@ -101,7 +101,7 @@ func FollowAction(HostId uint, GuestId uint, actionType uint) error {
 				if err != nil {
 					return err
 				}
-				//增加guest_id的粉丝数
+				//增加follow_id的粉丝数
 				err = IncreaseFollowerCount(GuestId)
 				if err != nil {
 					return err
@@ -131,7 +131,7 @@ func FollowAction(HostId uint, GuestId uint, actionType uint) error {
 				if err != nil {
 					return err
 				}
-				//减少guest_id的粉丝数
+				//减少follow_id的粉丝数
 				err = DecreaseFollowerCount(GuestId)
 				if err != nil {
 					return err
@@ -155,7 +155,7 @@ func FollowingList(HostId uint) ([]models.User, error) {
 	var userList []models.User
 	//2.查HostId的关注表
 	if err := models.DB.Model(&models.User{}).
-		Joins("left join "+followings+" on "+users+".id = "+followings+".guest_id").
+		Joins("left join "+followings+" on "+users+".id = "+followings+".follow_id").
 		Where(followings+".host_id=? AND "+followings+".deleted_at is null", HostId).
 		Scan(&userList).Error; err != nil {
 		return userList, nil

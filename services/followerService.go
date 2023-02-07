@@ -19,7 +19,7 @@ func IsFollower(HostId uint, GuestId uint) bool {
 	var relationExist = &models.Follower{}
 	//2.查询粉丝表中粉丝是否存在
 	if err := models.DB.Model(&models.Follower{}).
-		Where("host_id=? AND guest_id=?", HostId, GuestId).
+		Where("host_id=? AND follower_id=?", HostId, GuestId).
 		First(&relationExist).Error; errors.Is(err, gorm.ErrRecordNotFound) {
 		//粉丝不存在
 		return false
@@ -75,7 +75,7 @@ func DeleteFollower(HostId uint, GuestId uint) error {
 
 	//2.删除following
 	if err := models.DB.Model(&models.Follower{}).
-		Where("host_id=? AND guest_id=?", HostId, GuestId).
+		Where("host_id=? AND follower_id=?", HostId, GuestId).
 		Delete(&newFollower).Error; err != nil {
 		return err
 	}
@@ -89,7 +89,7 @@ func FollowerList(HostId uint) ([]models.User, error) {
 	var userList []models.User
 	//2.查HostId的关注表
 	if err := models.DB.Model(&models.User{}).
-		Joins("left join "+followers+" on "+users+".id = "+followers+".guest_id").
+		Joins("left join "+followers+" on "+users+".id = "+followers+".follower_id").
 		Where(followers+".host_id=? AND "+followers+".deleted_at is null", HostId).
 		Scan(&userList).Error; err != nil {
 		return userList, nil
