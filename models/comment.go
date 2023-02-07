@@ -7,27 +7,27 @@ import (
 )
 
 type Comment struct {
-	ID        uint      `gorm:"primarykey"`
-	CreatedAt time.Time `gorm:"index"` // 为了按时间顺序排序加入索引
-	UpdatedAt time.Time
-	DeletedAt gorm.DeletedAt `gorm:"index"`
-	VideoID   uint
-	UserID    uint
-	Content   string
+	gorm.Model
+	VideoID     uint
+	UserID      uint
+	Content     string
+	PublishDate time.Time `gorm:"index"` // 为了按时间顺序排序加入索引
 }
 
+// 读出少量用户数据用的
 type LiteUser struct {
 	Name          string
 	FollowCount   int64
 	FollowerCount int64
 }
 
+// 将评论数据加上用户数据
 type LiteComment struct {
-	ID        uint
-	CreatedAt time.Time
-	UserID    uint
+	ID     uint
+	UserID uint
 	LiteUser
-	Content string
+	Content     string
+	PublishDate time.Time
 }
 
 // 返回相应视频ID的相应分页的所用评论行，以行的创建时间降序排列
@@ -35,16 +35,16 @@ type LiteComment struct {
 // 现在还不知道到底是只查询评论,再去请求获得用户信息还是现在这样直接连接表得到大部分结果
 func QueryCommentsByVideoID(videoID uint, offset, limit int) (res []LiteComment, err error) {
 	err = DB.Model(&Comment{}).
-		Select("comments.id, comments.created_at, comments.user_id, users.name, users.follow_count, users.follower_count, comments.content").
+		Select("comments.id, comments.user_id, users.name, users.follow_count, users.follower_count, comments.content, comments.publish_date").
 		Joins("left join users on comments.user_id = users.id").
 		Where("comments.video_id = ?", videoID).
-		Order("comments.created_at DESC").Limit(limit).Offset(offset).Find(&res).Error
+		Order("comments.publish_date DESC").Limit(limit).Offset(offset).Find(&res).Error
 	return
 }
 
 // 添加评论时应该已经有了发表评论的用户的信息了
-func AddComment(videoID, userID uint, commentText string) (*Comment, error) {
-	comment := &Comment{VideoID: videoID, UserID: userID, Content: commentText}
+func AddComment(videoID, userID uint, commentText string, publishDate time.Time) (*Comment, error) {
+	comment := &Comment{VideoID: videoID, UserID: userID, Content: commentText, PublishDate: publishDate}
 	if err := DB.Create(&comment).Error; err != nil {
 		return nil, err
 	}
@@ -52,7 +52,28 @@ func AddComment(videoID, userID uint, commentText string) (*Comment, error) {
 }
 
 // 删除评论
-func DeleteComment(commentID uint) (err error) {
-	err = DB.Delete(&Comment{}, commentID).Error
+func DeleteComment(commentID, userID, videoID uint) (err error) {
+	err = DB.Where("id = ? and user_id = ? and video_id = ?", commentID, userID, videoID).Delete(&Comment{}).Error
+	return
+}
+
+// 获得用户的基本信息
+func QueryUserBasicInfo(userID uint) (res *LiteUser, err error) {
+	res = &LiteUser{}
+	err = DB.Model(&User{}).Where("id = ?", userID).First(res).Error
+	return
+}
+
+// 增加视频的评论计数
+func IncreaseVideoCommentCount(videoID uint, adder int) (err error) {
+	video := Video{}
+	video.ID = videoID
+	err = DB.Model(&video).Update("comment_count", gorm.Expr("comment_count + ?", adder)).Error
+	return
+}
+
+// 给出userID用户所关注的所有用户的ID
+func QueryFollowedUsersByUserID(userID uint) (res []uint, err error) {
+	err = DB.Model(&Following{}).Select("follow_id").Where("host_id = ?", userID).Find(&res).Error
 	return
 }

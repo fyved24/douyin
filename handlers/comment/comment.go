@@ -5,96 +5,112 @@ import (
 
 	"github.com/fyved24/douyin/requests"
 	"github.com/fyved24/douyin/responses"
+	"github.com/fyved24/douyin/services"
 	"github.com/gin-gonic/gin"
 )
 
-var DemoUser = responses.User{
-	ID:            1,
-	Name:          "TestUser",
-	FollowCount:   0,
-	FollowerCount: 0,
-	IsFollow:      false,
-}
+const (
+	COMMENT_STATUS_CODE_SUCCESS int32 = iota
+	COMMENT_STATUS_PARSE_ACTION_REQUEST_ERR
+	COMMENT_STATUS_PARSE_LIST_REQUEST_ERR
+	COMMENT_STATUS_PARSE_JWT_ERR
+	COMMENT_STATUS_ACTION_NOT_LOGINED
+	COMMENT_STATUS_PUBLISH_FAILED
+	COMMENT_STATUS_DELETE_FAILED
+	COMMENT_STATUS_ILLEGAL_ACTION
+	COMMENT_STATUS_GET_VIDEO_COMM_ERR
+)
 
-var DemoComments = []responses.Comment{
-	{
-		ID:         1,
-		User:       DemoUser,
-		Content:    "Test Comment",
-		CreateDate: "05-01",
-	},
-}
-
-var DemoToken = "zhangleidouyin"
-
-var UsersLoginInfo = map[string]responses.User{
-	DemoToken: {
-		ID:            1,
-		Name:          "zhanglei",
-		FollowCount:   10,
-		FollowerCount: 5,
-		IsFollow:      true,
-	},
-}
-
-var commentMap = map[uint][]responses.Comment{}
+const (
+	STATUS_MSG_SUCCEED        = "success"
+	STATUS_MSG_NOT_LOGINED    = "user not login"
+	STATUS_MSG_ILLEGAL_ACTION = "illegal action"
+)
 
 // 评论操作的controller
 func CommentAction(c *gin.Context) {
-
+	// 读取参数
 	commentActionRequest, err := requests.ReadCommentActionRequest(c)
-
 	if err != nil {
-		c.JSON(http.StatusOK, responses.CommonResponse{StatusCode: -1, StatusMsg: err.Error()})
+		c.JSON(http.StatusOK, responses.CommentActionResponse{
+			CommonResponse: responses.CommonResponse{StatusCode: COMMENT_STATUS_PARSE_ACTION_REQUEST_ERR, StatusMsg: err.Error()},
+		})
 		return
 	}
-
-	if user, exist := UsersLoginInfo[commentActionRequest.Token]; exist {
-		switch commentActionRequest.ActionType {
-		case requests.COMMENT_PUBLISH:
-			text := commentActionRequest.CommentText
-			var commentResponse = responses.Comment{
-				ID:         1,
-				User:       user,
-				Content:    text,
-				CreateDate: "05-01",
-			}
-			commentMap[commentActionRequest.VideoID] = append(commentMap[commentActionRequest.VideoID], commentResponse)
-			c.JSON(http.StatusOK, responses.CommentActionResponse{CommonResponse: responses.CommonResponse{StatusCode: 0},
-				Comment: commentResponse})
-			return
-
-		case requests.COMMENT_DELETE:
-			var delIdx int = -1
-			for idx, ele := range commentMap[commentActionRequest.VideoID] {
-				if ele.ID == int64(commentActionRequest.CommentID) {
-					delIdx = idx
-					break
-				}
-			}
-			if delIdx >= 0 {
-				commentMap[commentActionRequest.VideoID] = append(commentMap[commentActionRequest.VideoID][:delIdx], commentMap[commentActionRequest.VideoID][delIdx+1:]...)
-				c.JSON(http.StatusOK, responses.CommentActionResponse{CommonResponse: responses.CommonResponse{StatusCode: 0, StatusMsg: "success"}})
-			} else {
-				c.JSON(http.StatusOK, responses.CommentActionResponse{CommonResponse: responses.CommonResponse{StatusCode: 1, StatusMsg: "no such comment"}})
-			}
-
-		}
-	} else {
-		c.JSON(http.StatusOK, responses.CommonResponse{StatusCode: 1, StatusMsg: "User doesn't exist"})
+	// 评论操作都需要用户已登录
+	logined, userID, err := services.BrowserLogined(&commentActionRequest.Token)
+	if err != nil {
+		c.JSON(http.StatusOK, responses.CommentActionResponse{
+			CommonResponse: responses.CommonResponse{StatusCode: COMMENT_STATUS_PARSE_JWT_ERR, StatusMsg: err.Error()},
+		})
+		return
 	}
+	if !logined {
+		c.JSON(http.StatusOK, responses.CommentActionResponse{
+			CommonResponse: responses.CommonResponse{StatusCode: COMMENT_STATUS_ACTION_NOT_LOGINED, StatusMsg: STATUS_MSG_NOT_LOGINED},
+		})
+		return
+	}
+	switch commentActionRequest.ActionType {
+	case requests.COMMENT_PUBLISH:
+		// 用户添加评论操作
+		respComment, err := services.AddVideoComment(commentActionRequest.VideoID, userID, commentActionRequest.CommentText)
+		if err != nil {
+			c.JSON(http.StatusOK, responses.CommentActionResponse{
+				CommonResponse: responses.CommonResponse{StatusCode: COMMENT_STATUS_PUBLISH_FAILED, StatusMsg: err.Error()},
+			})
+			return
+		}
+		c.JSON(http.StatusOK, responses.CommentActionResponse{CommonResponse: responses.CommonResponse{StatusCode: COMMENT_STATUS_CODE_SUCCESS},
+			Comment: *respComment})
+	case requests.COMMENT_DELETE:
+		// 用户删除评论操作
+		err := services.DeleteComment(commentActionRequest.CommentID, userID, commentActionRequest.VideoID)
+		if err != nil {
+			c.JSON(http.StatusOK, responses.CommentActionResponse{
+				CommonResponse: responses.CommonResponse{StatusCode: COMMENT_STATUS_DELETE_FAILED, StatusMsg: err.Error()},
+			})
+			return
+		}
+		c.JSON(http.StatusOK, responses.CommentActionResponse{CommonResponse: responses.CommonResponse{StatusCode: COMMENT_STATUS_CODE_SUCCESS, StatusMsg: STATUS_MSG_SUCCEED}})
+	default:
+		// 非法操作类型
+		c.JSON(http.StatusOK, responses.CommentActionResponse{
+			CommonResponse: responses.CommonResponse{StatusCode: COMMENT_STATUS_ILLEGAL_ACTION, StatusMsg: STATUS_MSG_ILLEGAL_ACTION},
+		})
+	}
+
 }
 
 // 评论列表的controller
 func CommentList(c *gin.Context) {
+	// 读取参数
 	commentListRequest, err := requests.ReadCommentListRequest(c)
 	if err != nil {
-		c.JSON(http.StatusOK, responses.CommonResponse{StatusCode: -1, StatusMsg: err.Error()})
+		c.JSON(http.StatusOK, responses.CommentListResponse{
+			CommonResponse: responses.CommonResponse{StatusCode: COMMENT_STATUS_PARSE_LIST_REQUEST_ERR, StatusMsg: err.Error()},
+		})
 		return
 	}
-	var videoComments []responses.Comment = commentMap[commentListRequest.VideoID]
+	// 检查浏览用户是否登录
+	logined, userID, err := services.BrowserLogined(&commentListRequest.Token)
+	if err != nil {
+		c.JSON(http.StatusOK, responses.CommentListResponse{
+			CommonResponse: responses.CommonResponse{StatusCode: COMMENT_STATUS_PARSE_JWT_ERR, StatusMsg: err.Error()},
+		})
+		return
+	}
+	// 查询视频的所用评论
+	videoComments, err := services.GetVideoComments(commentListRequest.VideoID, logined, userID)
+	if err != nil {
+		c.JSON(http.StatusOK, responses.CommentListResponse{
+			CommonResponse: responses.CommonResponse{StatusCode: COMMENT_STATUS_GET_VIDEO_COMM_ERR, StatusMsg: err.Error()},
+		})
+		return
+	}
+	// 返回评论
 	c.JSON(http.StatusOK, responses.CommentListResponse{
-		CommonResponse: responses.CommonResponse{StatusCode: 0, StatusMsg: "success"},
+		CommonResponse: responses.CommonResponse{StatusCode: COMMENT_STATUS_CODE_SUCCESS, StatusMsg: STATUS_MSG_SUCCEED},
 		CommentList:    videoComments,
 	})
 }

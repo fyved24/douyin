@@ -10,14 +10,15 @@ package responses
 
 import "encoding/json"
 
+// 从simple-demo中抄来的json格式不确定正确性
 type CommentListResponse struct {
 	CommonResponse
-	CommentList []Comment `json:"comment_list"` // 评论列表
+	CommentList []Comment `json:"comment_list,omitempty"` // 评论列表
 }
 
 type CommentActionResponse struct {
 	CommonResponse
-	Comment Comment `json:"comment"` // 评论成功返回评论内容，不需要重新拉取整个列表
+	Comment Comment `json:"comment,omitempty"` // 评论成功返回评论内容，不需要重新拉取整个列表
 }
 
 func UnmarshalCommentListResponse(data []byte) (CommentListResponse, error) {
