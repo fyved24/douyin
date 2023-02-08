@@ -1,10 +1,11 @@
-package video
+package handlers
 
 import (
+	"net/http"
+
 	"github.com/fyved24/douyin/requests"
 	"github.com/fyved24/douyin/services/video"
 	"github.com/gin-gonic/gin"
-	"net/http"
 )
 
 func FeedVideoList(c *gin.Context) {
