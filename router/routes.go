@@ -24,6 +24,7 @@ func InitRouter(r *gin.Engine) {
 			publishGroup.GET("/action/", video.PublishVideoAction)
 			publishGroup.GET("/list/", video.UserPublishVideoList)
 		}
+
 		// relation路由组
 		relationGroup := douyinGroup.Group("relation")
 		{
