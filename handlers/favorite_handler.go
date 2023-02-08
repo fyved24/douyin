@@ -26,16 +26,14 @@ func Favorite(c *gin.Context) {
 
 	err := services.FavoriteAction(userId, videoId, actionType)
 
-	msg := "success"
-
 	if err != nil {
-		msg = err.Error()
+
 		c.JSON(200, models.FavoriteActionResponse{
-			500, &msg,
+			500, err.Error(),
 		})
 	} else {
 		c.JSON(200, models.FavoriteActionResponse{
-			0, &msg,
+			0, "success",
 		})
 	}
 
@@ -51,15 +49,15 @@ func FavoriteList(c *gin.Context) {
 
 	res, err := services.FindAllFavorite(userId)
 
-	msg := "success"
+	//msg := "success"
 	if err != nil {
-		msg = "查询失败"
+
 		c.JSON(200, models.FavoriteListResponse{
-			1, &msg, nil,
+			1, err.Error(), nil,
 		})
 	} else {
 		c.JSON(200, models.FavoriteListResponse{
-			StatusCode: 0, StatusMsg: &msg, VideoList: res,
+			StatusCode: 0, StatusMsg: "success", VideoList: res,
 		})
 	}
 
