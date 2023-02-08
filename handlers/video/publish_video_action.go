@@ -15,7 +15,7 @@ var (
 	FileServerPrefix = "http://192.168.31.80:8080/file/"
 )
 
-func PublishVideoHandler(c *gin.Context) {
+func PublishVideoAction(c *gin.Context) {
 	req := requests.NewDouyinPublishActionRequest(c)
 
 	file, _ := c.FormFile("data")

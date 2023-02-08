@@ -16,6 +16,11 @@ func InitRouter(r *gin.Engine) {
 		// feed
 		douyinGroup.GET("/feed/", video.FeedVideoList)
 
+		publishGroup := douyinGroup.Group("publish")
+		{
+			publishGroup.GET("/action/", video.PublishVideoAction)
+			publishGroup.GET("/list/", video.UserPublishVideoList)
+		}
 		// relation路由组
 		relationGroup := douyinGroup.Group("relation")
 		{
@@ -29,6 +34,7 @@ func InitRouter(r *gin.Engine) {
 			commentGroup.GET("/list/", comment.CommentList)
 			commentGroup.GET("/action/", comment.CommentAction)
 		}
+
 	}
 
 	// 文件服务
