@@ -1,18 +1,13 @@
 package models
 
-import (
-	"gorm.io/gorm"
-)
-
 type User struct {
-	gorm.Model
-	Name           string
-	Password       string `json:"-"`
-	Token          string
-	FollowCount    int64
-	FollowerCount  int64
-	TotalFavorited int64
-	FavoriteCount  int64
+	Model
+	Name           string    `json:"name"`
+	Password       string    `json:"-"`
+	FollowCount    uint      `json:"follow_count"`
+	FollowerCount  uint      `json:"follower_count"`
+	TotalFavorited uint      `json:"total_favorited"`
+	FavoriteCount  uint      `json:"favorite_count"`
 	Videos         []Video   `gorm:"foreignKey:AuthorID" json:"-"`
 	Comments       []Comment `json:"-"`
 }
@@ -31,8 +26,8 @@ func HasExistUserByUsername(username string) bool {
 }
 
 // 使用用户名、加密后的密码以及令牌新建一个用户
-func AddUser(username string, password string, followCount int64, followerCount int64,
-	totalFavorited int64, favoriteCount int64) uint {
+func AddUser(username string, password string, followCount uint, followerCount uint,
+	totalFavorited uint, favoriteCount uint) uint {
 	var user User
 	user = User{
 		Name:           username,
@@ -78,25 +73,25 @@ func SelectUsernameByID(id uint) string {
 	return user.Name
 }
 
-func SelectFollowCountByID(id uint) int64 {
+func SelectFollowCountByID(id uint) uint {
 	var user User
 	DB.Where("id = ?", id).First(&user)
 	return user.FollowCount
 }
 
-func SelectFollowerCountByID(id uint) int64 {
+func SelectFollowerCountByID(id uint) uint {
 	var user User
 	DB.Where("id = ?", id).First(&user)
 	return user.FollowerCount
 }
 
-func SelectTotalFavoritedByID(id uint) int64 {
+func SelectTotalFavoritedByID(id uint) uint {
 	var user User
 	DB.Where("id = ?", id).First(&user)
 	return user.TotalFavorited
 }
 
-func SelectFavoriteCountByID(id uint) int64 {
+func SelectFavoriteCountByID(id uint) uint {
 	var user User
 	DB.Where("id = ?", id).First(&user)
 	return user.FavoriteCount
