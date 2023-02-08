@@ -1,15 +1,13 @@
 package models
 
-import "gorm.io/gorm"
-
 type User struct {
-	gorm.Model
-	Name           string
-	Password       string `json:"-"`
-	FollowCount    int64
-	FollowerCount  int64
-	TotalFavorited int64
-	FavoriteCount  int64
+	Model
+	Name           string    `json:"name"`
+	Password       string    `json:"-"`
+	FollowCount    uint      `json:"follow_count"`
+	FollowerCount  uint      `json:"follower_count"`
+	TotalFavorited uint      `json:"total_favorited"`
+	FavoriteCount  uint      `json:"favorite_count"`
 	Videos         []Video   `gorm:"foreignKey:AuthorID" json:"-"`
 	Comments       []Comment `json:"-"`
 }

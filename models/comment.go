@@ -1,13 +1,12 @@
 package models
 
 import (
-	"time"
-
 	"gorm.io/gorm"
+	"time"
 )
 
 type Comment struct {
-	gorm.Model
+	Model
 	VideoID     uint
 	UserID      uint
 	Content     string
