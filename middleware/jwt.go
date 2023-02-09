@@ -1,86 +1,46 @@
 package middleware
 
 import (
-	"net/http"
-	"time"
-
-	"github.com/dgrijalva/jwt-go"
-	"github.com/fyved24/douyin/responses"
+	"github.com/fyved24/douyin/handlers/user/utils"
 	"github.com/gin-gonic/gin"
+	"net/http"
 )
 
-var Key = []byte("byte dance 11111 return")
-
-type MyClaims struct {
-	UserId   uint   `json:"user_id"`
-	UserName string `json:"username"`
-	jwt.StandardClaims
-}
-
-// CreateToken 生成token
-func CreateToken(userId uint, userName string) (string, error) {
-	expireTime := time.Now().Add(24 * time.Hour) //过期时间
-	nowTime := time.Now()                        //当前时间
-	claims := MyClaims{
-		UserId:   userId,
-		UserName: userName,
-		StandardClaims: jwt.StandardClaims{
-			ExpiresAt: expireTime.Unix(), //过期时间戳
-			IssuedAt:  nowTime.Unix(),    //当前时间戳
-			Issuer:    "user",            //颁发者签名
-			Subject:   "userToken",       //签名主题
-		},
-	}
-	tokenStruct := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	return tokenStruct.SignedString(Key)
-}
-
-// CheckToken 验证token
-func CheckToken(token string) (*MyClaims, bool) {
-	tokenObj, _ := jwt.ParseWithClaims(token, &MyClaims{}, func(token *jwt.Token) (interface{}, error) {
-		return Key, nil
-	})
-	if key, _ := tokenObj.Claims.(*MyClaims); tokenObj.Valid {
-		return key, true
-	} else {
-		return nil, false
-	}
-}
-
-// JwtMiddleware jwt中间件
-func JwtMiddleware() gin.HandlerFunc {
+// JWT验证拦截，若token解析失败直接http返回，使用方法：路由组.Use()。
+// 根据token获取userID和userName可参考user/user.go中Info函数里面的代码
+func JWT() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		tokenStr := c.Query("token")
-		if tokenStr == "" {
-			tokenStr = c.PostForm("token")
+		token := c.Query("token")
+		if token == "" {
+			token = c.PostForm("token")
 		}
-		//用户不存在
-		if tokenStr == "" {
-			c.JSON(http.StatusOK, responses.CommonResponse{StatusCode: 401, StatusMsg: "用户不存在"})
-			c.Abort() //阻止执行
-			return
-		}
-		//验证token
-		tokenStruck, ok := CheckToken(tokenStr)
-		if !ok {
-			c.JSON(http.StatusOK, responses.CommonResponse{
-				StatusCode: 403,
-				StatusMsg:  "token不正确",
+
+		//并未获取到token，拦截
+		if token == "" {
+			c.JSON(http.StatusUnauthorized, gin.H{
+				"status_code": 1,
+				"status_msg":  "invalidToken",
 			})
-			c.Abort() //阻止执行
+			c.Abort()
 			return
 		}
-		//token超时
-		if time.Now().Unix() > tokenStruck.ExpiresAt {
-			c.JSON(http.StatusOK, responses.CommonResponse{
-				StatusCode: 402,
-				StatusMsg:  "token过期",
+
+		claims, err := utils.ParseToken(token)
+
+		//token解析失败
+		if err != nil {
+			c.JSON(http.StatusUnauthorized, gin.H{
+				"status_code": 1,
+				"status_msg":  err.Error(),
 			})
-			c.Abort() //阻止执行
+			c.Abort()
 			return
 		}
-		c.Set("username", tokenStruck.UserName)
-		c.Set("user_id", tokenStruck.UserId)
+
+		userID := claims.UserID
+		username := claims.Username
+		c.Set("user_id", userID)    // 保存userID到Context的key中，可以通过Get()取
+		c.Set("username", username) //保存username到Context的key中
 
 		c.Next()
 	}
