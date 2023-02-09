@@ -108,6 +108,13 @@ func TestComment(t *testing.T) {
 			t.Error(err)
 		}
 		assert.Equal(t, int64(1+idx), exampleVideo.CommentCount)
+
+		// Test query video count
+		cnt, err := models.QueryVideoCommentCount(exampleVideo.ID)
+		if err != nil {
+			t.Error(err)
+		}
+		assert.Equal(t, uint(1+idx), cnt)
 	}
 
 	// Test query comments
@@ -139,6 +146,12 @@ func TestComment(t *testing.T) {
 			t.Error(err)
 		}
 		assert.Equal(t, int64(len(comments)-1-idx), exampleVideo.CommentCount)
+
+		cnt, err := models.QueryVideoCommentCount(exampleVideo.ID)
+		if err != nil {
+			t.Error(err)
+		}
+		assert.Equal(t, uint(len(comments)-1-idx), cnt)
 	}
 
 	// Test query comments

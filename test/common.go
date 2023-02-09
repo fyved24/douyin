@@ -59,7 +59,7 @@ const BIG_UINT = 11
 // 给数据库生成一些用户和视频
 func makeSomeUsersAndVideos() (users []models.User, videos []models.Video) {
 	rand.Seed(time.Now().UnixNano())
-	count := rand.Int31n(BIG_UINT)
+	count := rand.Int31n(BIG_UINT) + 1
 	users = make([]models.User, count)
 	videos = make([]models.Video, count)
 	// 生成一些用户
@@ -88,16 +88,19 @@ func makeSomeUsersAndVideos() (users []models.User, videos []models.Video) {
 	return
 }
 
-func makeSomeFollows(users []models.User) map[[2]int]struct{} {
+func makeSomeFollows(users []models.User) map[[2]uint]struct{} {
 	rand.Seed(time.Now().UnixNano())
 	following := make(map[[2]int]struct{})
+	res := make(map[[2]uint]struct{})
 	for i := 0; i < BIG_UINT*2; i++ {
 		host, fl := rand.Intn(len(users)), rand.Intn(len(users))
 		key := [2]int{host, fl}
+		resKey := [2]uint{users[host].ID, users[fl].ID}
 		if _, visited := following[key]; host == fl || visited {
 			continue
 		}
 		following[key] = struct{}{}
+		res[resKey] = struct{}{}
 		models.DB.Create(&models.Following{HostID: users[host].ID, FollowID: users[fl].ID})
 		models.DB.Create(&models.Follower{HostID: users[fl].ID, FollowerID: users[host].ID})
 		users[host].FollowCount++
@@ -105,5 +108,5 @@ func makeSomeFollows(users []models.User) map[[2]int]struct{} {
 		models.DB.Model(&users[host]).Update("follow_count", users[host].FollowCount)
 		models.DB.Model(&users[fl]).Update("follower_count", users[fl].FollowerCount)
 	}
-	return following
+	return res
 }

@@ -1,13 +1,20 @@
 package services
 
 import (
+	"errors"
 	"time"
 
 	"github.com/fyved24/douyin/models"
 	"github.com/fyved24/douyin/responses"
 	"github.com/golang-jwt/jwt/v4"
+	"gorm.io/gorm"
 )
 
+// 由于用户如果已经登录,给出的token中应该有服务端签发的用户ID,
+// 而且系统没有设置,用户修改接口,因此认为服务端签发的用户ID默认合法
+// 不进一步进行用户存在判断
+
+// 评论创建日期的格式mm-dd
 const CREATE_DATE_FMT = "01-02"
 
 // 没有引入cache获得视频的所有评论并且用连接表的方式获得用户的信息
@@ -33,8 +40,8 @@ func getVideoComments(videoID uint, limit, offset int, logined bool, userID uint
 		res[idx].ID = int64(cm.ID)
 		res[idx].User.ID = int64(cm.UserID)
 		res[idx].User.Name = cm.Name
-		res[idx].User.FollowCount = cm.FollowCount
-		res[idx].User.FollowerCount = cm.FollowerCount
+		res[idx].User.FollowCount = int64(cm.FollowCount)
+		res[idx].User.FollowerCount = int64(cm.FollowerCount)
 		res[idx].Content = cm.Content
 		// 根据评论创建时间生成评论创建日期字符串
 		res[idx].CreateDate = cm.PublishDate.Format(CREATE_DATE_FMT)
@@ -62,8 +69,7 @@ type MySimpleUserClaims struct {
 	jwt.RegisteredClaims
 }
 
-// 用户鉴权测试
-func BrowserLogined(tokenString *string) (logined bool, userID uint, err error) {
+func internalTestBrowserLogined(tokenString *string) (logined bool, userID uint, err error) {
 	token, err := jwt.ParseWithClaims(*tokenString, &MySimpleUserClaims{}, func(t *jwt.Token) (interface{}, error) {
 		return MySecretKey, nil
 	})
@@ -72,6 +78,11 @@ func BrowserLogined(tokenString *string) (logined bool, userID uint, err error) 
 		userID = claims.UserID
 	}
 	return
+}
+
+// 用户鉴权测试
+func BrowserLogined(tokenString *string) (logined bool, userID uint, err error) {
+	return internalTestBrowserLogined(tokenString)
 }
 
 // 查询评论用户的基本信息
@@ -103,8 +114,8 @@ func addVideoComment(videoID, userID uint, content string) (*responses.Comment, 
 		User: responses.User{
 			ID:            int64(userID),
 			Name:          usrInfo.Name,
-			FollowCount:   usrInfo.FollowCount,
-			FollowerCount: usrInfo.FollowerCount,
+			FollowCount:   int64(usrInfo.FollowCount),
+			FollowerCount: int64(usrInfo.FollowerCount),
 		},
 		Content:    mr.Content,
 		CreateDate: mr.PublishDate.Format(CREATE_DATE_FMT),
@@ -131,4 +142,20 @@ func deldeteComment(commentID, userID, videoID uint) error {
 // 已登录用户删除自己发表的评论
 func DeleteComment(commentID, userID, videoID uint) error {
 	return deldeteComment(commentID, userID, videoID)
+}
+
+func videoExist(videoID uint) (bool, error) {
+	_, err := models.QueryVideoCommentCount(videoID)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return false, nil
+		}
+		return false, err
+	}
+	return true, nil
+}
+
+// 检查要操作或查询的视频是否存在
+func VideoExist(videoID uint) (bool, error) {
+	return videoExist(videoID)
 }

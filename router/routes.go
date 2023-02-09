@@ -32,7 +32,7 @@ func InitRouter(r *gin.Engine) {
 		commentGroup := douyinGroup.Group("comment")
 		{
 			commentGroup.GET("/list/", comment.CommentList)
-			commentGroup.GET("/action/", comment.CommentAction)
+			commentGroup.POST("/action/", comment.CommentAction)
 		}
 
 	}

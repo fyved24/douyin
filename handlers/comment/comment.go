@@ -2,6 +2,8 @@ package comment
 
 import (
 	"net/http"
+	"unicode"
+	"unicode/utf8"
 
 	"github.com/fyved24/douyin/requests"
 	"github.com/fyved24/douyin/responses"
@@ -19,13 +21,48 @@ const (
 	COMMENT_STATUS_DELETE_FAILED
 	COMMENT_STATUS_ILLEGAL_ACTION
 	COMMENT_STATUS_GET_VIDEO_COMM_ERR
+	COMMENT_STATUS_COMMENT_CONTENT_ILLEGAL
+	COMMENT_STATUS_VIDEO_DONT_EXIST
+	COMMENT_STATUS_PARAM_VALID_ERR
 )
 
 const (
-	STATUS_MSG_SUCCEED        = "success"
-	STATUS_MSG_NOT_LOGINED    = "user not login"
-	STATUS_MSG_ILLEGAL_ACTION = "illegal action"
+	STATUS_MSG_SUCCEED                 = "success"
+	STATUS_MSG_NOT_LOGINED             = "user not login"
+	STATUS_MSG_ILLEGAL_ACTION          = "illegal action"
+	STATUS_MSG_COMMENT_CONTENT_ILLEGAL = "illegal comment"
+	STATUS_MSG_VIDEO_DONT_EXIST        = "video don't exist"
 )
+
+const (
+	COMMENT_MAX_LEN      = 100 // 网上查的说抖音的评论区最多100个字的限制
+	CODE_POINT_MAX_BYTES = 4
+)
+
+// 检查发来的字符串是否符合要求
+func validCommentContent(s string) bool {
+	// 明显过长过短或是编码不正确
+	if len(s) > COMMENT_MAX_LEN*CODE_POINT_MAX_BYTES ||
+		len(s) == 0 ||
+		!utf8.ValidString(s) {
+		return false
+	}
+	// 转换成Unicode过长
+	if cnt := utf8.RuneCountInString(s); cnt > COMMENT_MAX_LEN {
+		return false
+	}
+	// 检查内容是否可打印,是否为全空格类
+	blank := true
+	for _, r := range s {
+		if !unicode.IsPrint(r) {
+			return false
+		}
+		if !unicode.IsSpace(r) {
+			blank = false
+		}
+	}
+	return !blank
+}
 
 // 评论操作的controller
 func CommentAction(c *gin.Context) {
@@ -51,8 +88,27 @@ func CommentAction(c *gin.Context) {
 		})
 		return
 	}
+	// 检查视频是否真的存在
+	if exist, err := services.VideoExist(commentActionRequest.VideoID); err != nil {
+		c.JSON(http.StatusOK, responses.CommentActionResponse{
+			CommonResponse: responses.CommonResponse{StatusCode: COMMENT_STATUS_VIDEO_DONT_EXIST, StatusMsg: STATUS_MSG_VIDEO_DONT_EXIST},
+		})
+		return
+	} else if !exist {
+		c.JSON(http.StatusOK, responses.CommentActionResponse{
+			CommonResponse: responses.CommonResponse{StatusCode: COMMENT_STATUS_VIDEO_DONT_EXIST, StatusMsg: STATUS_MSG_VIDEO_DONT_EXIST},
+		})
+		return
+	}
 	switch commentActionRequest.ActionType {
 	case requests.COMMENT_PUBLISH:
+		// 检查评论字符串合法性
+		if !validCommentContent(commentActionRequest.CommentText) {
+			c.JSON(http.StatusOK, responses.CommentActionResponse{
+				CommonResponse: responses.CommonResponse{StatusCode: COMMENT_STATUS_COMMENT_CONTENT_ILLEGAL, StatusMsg: STATUS_MSG_COMMENT_CONTENT_ILLEGAL},
+			})
+			return
+		}
 		// 用户添加评论操作
 		respComment, err := services.AddVideoComment(commentActionRequest.VideoID, userID, commentActionRequest.CommentText)
 		if err != nil {
@@ -89,6 +145,18 @@ func CommentList(c *gin.Context) {
 	if err != nil {
 		c.JSON(http.StatusOK, responses.CommentListResponse{
 			CommonResponse: responses.CommonResponse{StatusCode: COMMENT_STATUS_PARSE_LIST_REQUEST_ERR, StatusMsg: err.Error()},
+		})
+		return
+	}
+	// 检查视频是否真的存在
+	if exist, err := services.VideoExist(commentListRequest.VideoID); err != nil {
+		c.JSON(http.StatusOK, responses.CommentListResponse{
+			CommonResponse: responses.CommonResponse{StatusCode: COMMENT_STATUS_VIDEO_DONT_EXIST, StatusMsg: STATUS_MSG_VIDEO_DONT_EXIST},
+		})
+		return
+	} else if !exist {
+		c.JSON(http.StatusOK, responses.CommentListResponse{
+			CommonResponse: responses.CommonResponse{StatusCode: COMMENT_STATUS_VIDEO_DONT_EXIST, StatusMsg: STATUS_MSG_VIDEO_DONT_EXIST},
 		})
 		return
 	}

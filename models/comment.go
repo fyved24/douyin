@@ -1,8 +1,9 @@
 package models
 
 import (
-	"gorm.io/gorm"
 	"time"
+
+	"gorm.io/gorm"
 )
 
 type Comment struct {
@@ -16,8 +17,8 @@ type Comment struct {
 // 读出少量用户数据用的
 type LiteUser struct {
 	Name          string
-	FollowCount   int64
-	FollowerCount int64
+	FollowCount   uint
+	FollowerCount uint
 }
 
 // 将评论数据加上用户数据
@@ -74,5 +75,11 @@ func IncreaseVideoCommentCount(videoID uint, adder int) (err error) {
 // 给出userID用户所关注的所有用户的ID
 func QueryFollowedUsersByUserID(userID uint) (res []uint, err error) {
 	err = DB.Model(&Following{}).Select("follow_id").Where("host_id = ?", userID).Find(&res).Error
+	return
+}
+
+// 读取视频评论数的同时检查视频是否存在
+func QueryVideoCommentCount(videoID uint) (res uint, err error) {
+	err = DB.Model(&Video{}).Where("id = ?", videoID).Select("comment_count").Take(&res).Error
 	return
 }
