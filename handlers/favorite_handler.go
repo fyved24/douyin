@@ -2,7 +2,7 @@ package handlers
 
 import (
 	"fmt"
-	"github.com/fyved24/douyin/models"
+	"github.com/fyved24/douyin/responses"
 	"github.com/fyved24/douyin/services"
 	"github.com/gin-gonic/gin"
 	"strconv"
@@ -28,12 +28,12 @@ func Favorite(c *gin.Context) {
 
 	if err != nil {
 
-		c.JSON(200, models.FavoriteActionResponse{
+		c.JSON(200, responses.FavoriteActionResponse{
 			500, err.Error(),
 		})
 	} else {
-		c.JSON(200, models.FavoriteActionResponse{
-			0, "success",
+		c.JSON(200, responses.FavoriteActionResponse{
+			200, "success",
 		})
 	}
 
@@ -52,11 +52,11 @@ func FavoriteList(c *gin.Context) {
 	//msg := "success"
 	if err != nil {
 
-		c.JSON(200, models.FavoriteListResponse{
+		c.JSON(200, responses.FavoriteListResponse{
 			1, err.Error(), nil,
 		})
 	} else {
-		c.JSON(200, models.FavoriteListResponse{
+		c.JSON(200, responses.FavoriteListResponse{
 			StatusCode: 0, StatusMsg: "success", VideoList: res,
 		})
 	}
