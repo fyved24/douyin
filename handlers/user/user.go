@@ -63,8 +63,8 @@ func Register(c *gin.Context) {
 	password = utils.EncodePassword(password) //加密存储密码
 
 	userID := models.AddUser(username, password, 0, 0,
-		0, 0)                                               //注册成功，更新用户信息
-	token := utils.GetUserToken(username, password, userID) //获取JWT令牌
+		0, 0) //注册成功，更新用户信息
+	token := utils.GetUserToken(username, password, userID, false) //获取JWT令牌
 	c.JSON(http.StatusOK, gin.H{
 		"status_code": 0,
 		"status_msg":  "注册成功",
@@ -89,7 +89,7 @@ func Login(c *gin.Context) {
 		return
 	}
 	//用户名和密码都正确，成功登录
-	token := utils.GetUserToken(username, password, userID) //获取JWT令牌
+	token := utils.GetUserToken(username, password, userID, true) //获取JWT令牌
 	c.JSON(http.StatusOK, gin.H{
 		"status_code": 0,
 		"status_msg":  "登录成功",
@@ -104,16 +104,8 @@ func Info(c *gin.Context) {
 
 	//根据token获取myUserId
 	token := c.Query("token")
-	tokenStruct, err := utils.ParseToken(token)
-	if err != nil {
-		c.JSON(http.StatusOK, gin.H{
-			"status_code": 1,
-			"status_msg":  err.Error(),
-		})
-		return
-	}
-	myUserID := utils.StringToUint(tokenStruct.UserID) //访问者的userID
-	myUsername := tokenStruct.Username                 //访问者的userName
+	myUserID := utils.GetUserIDFromToken(token)     //访问者的userID
+	myUsername := utils.GetUsernameFromToken(token) //访问者的userName
 
 	if myUsername == "" && hostUsername == "" {
 		c.JSON(http.StatusOK, gin.H{

@@ -50,11 +50,11 @@ func init() {
 	models.DB.Create(&exampleUserB)
 	models.DB.Create(&exampleUserC)
 	// A follows B
-	exampleFollowerRelAB = models.Follower{HostID: int64(exampleUserB.ID), FollowerID: int64(exampleUserA.ID)}
-	exampleFollowingRelAB = models.Following{HostID: int64(exampleUserA.ID), FollowID: int64(exampleUserB.ID)}
+	exampleFollowerRelAB = models.Follower{HostID: uint(exampleUserB.ID), FollowerID: uint(exampleUserA.ID)}
+	exampleFollowingRelAB = models.Following{HostID: uint(exampleUserA.ID), FollowID: uint(exampleUserB.ID)}
 	// C follows B
-	exampleFollowerRelCB = models.Follower{HostID: int64(exampleUserB.ID), FollowerID: int64(exampleUserC.ID)}
-	exampleFollowingRelCB = models.Following{HostID: int64(exampleUserC.ID), FollowID: int64(exampleUserB.ID)}
+	exampleFollowerRelCB = models.Follower{HostID: uint(exampleUserB.ID), FollowerID: uint(exampleUserC.ID)}
+	exampleFollowingRelCB = models.Following{HostID: uint(exampleUserC.ID), FollowID: uint(exampleUserB.ID)}
 	models.DB.Create(&exampleFollowerRelAB)
 	models.DB.Create(&exampleFollowerRelCB)
 	models.DB.Create(&exampleFollowingRelAB)
