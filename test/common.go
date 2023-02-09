@@ -69,8 +69,8 @@ func makeSomeUsersAndVideos() (users []models.User, videos []models.Video) {
 		flwCnt, flwrCnt := 0, 0
 		users[idx] = models.User{
 			Name:          name,
-			FollowCount:   int64(flwCnt),
-			FollowerCount: int64(flwrCnt),
+			FollowCount:   uint(flwCnt),
+			FollowerCount: uint(flwrCnt),
 		}
 	}
 	// 生成一些视频
@@ -98,8 +98,8 @@ func makeSomeFollows(users []models.User) map[[2]int]struct{} {
 			continue
 		}
 		following[key] = struct{}{}
-		models.DB.Create(&models.Following{HostID: int64(users[host].ID), FollowID: int64(users[fl].ID)})
-		models.DB.Create(&models.Follower{HostID: int64(users[fl].ID), FollowerID: int64(users[host].ID)})
+		models.DB.Create(&models.Following{HostID: uint(users[host].ID), FollowID: uint(users[fl].ID)})
+		models.DB.Create(&models.Follower{HostID: uint(users[fl].ID), FollowerID: uint(users[host].ID)})
 		users[host].FollowCount++
 		users[fl].FollowerCount++
 		models.DB.Model(&users[host]).Update("follow_count", users[host].FollowCount)

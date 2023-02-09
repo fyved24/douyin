@@ -14,16 +14,18 @@ type MyClaim struct { //jwt验证用
 	Username string `json:"username"`
 	Password string `json:"password"`
 	UserID   string `json:"user_id"`
+	IsLogin  bool   `json:"is_login"`
 	jwt.StandardClaims
 }
 
 // 签发一个token
-func GetUserToken(username string, password string, userID uint) string {
+func GetUserToken(username string, password string, userID uint, islogin bool) string {
 	//创建一个JWT
 	myclaim := MyClaim{
 		Username: username,
 		Password: password,
 		UserID:   strconv.Itoa(int(userID)),
+		IsLogin:  islogin,
 		StandardClaims: jwt.StandardClaims{
 			NotBefore: time.Now().Unix() - 60,         //生效时间
 			ExpiresAt: time.Now().Unix() + 2000*60*60, //失效时间，先设置为不过期
@@ -55,4 +57,28 @@ func ParseToken(s string) (*MyClaim, error) {
 	}
 
 	return nil, errors.New("token is invalid")
+}
+
+// 取出token中的userID
+func GetUserIDFromToken(token string) uint {
+	claim, _ := ParseToken(token)
+	return StringToUint(claim.UserID)
+}
+
+// 取出token中的username
+func GetUsernameFromToken(token string) string {
+	claim, _ := ParseToken(token)
+	return claim.Username
+}
+
+// 取出token中的password
+func GetPasswordFromToken(token string) string {
+	claim, _ := ParseToken(token)
+	return claim.Password
+}
+
+// 取出token中的is_login。true代表已登录
+func GetIsLoginFromToken(token string) bool {
+	claim, _ := ParseToken(token)
+	return claim.IsLogin
 }
