@@ -2,6 +2,7 @@ package requests
 
 import (
 	"github.com/gin-gonic/gin"
+	"strconv"
 )
 
 type DouyinPublishActionRequest struct {
@@ -22,6 +23,7 @@ func (r *DouyinPublishActionRequest) check(c *gin.Context) {
 	r.Title = title
 	token := c.PostForm("token")
 	r.Token = token
-	r.UserID = 13
-
+	userIdStr := c.GetString("user_id")
+	userID, _ := strconv.ParseUint(userIdStr, 10, 64)
+	r.UserID = uint(userID)
 }

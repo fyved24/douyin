@@ -16,7 +16,7 @@ func NewDouyinPublishListRequest(c *gin.Context) *DouyinPublishListRequest {
 
 func (r *DouyinPublishListRequest) check(c *gin.Context) {
 
-	userID := c.Param("user_id ")
+	userID := c.GetString("user_id ")
 	r.Title = userID
 	token := c.Param("token")
 	r.Token = token
