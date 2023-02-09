@@ -52,9 +52,13 @@ func init() {
 	// A follows B
 	exampleFollowerRelAB = models.Follower{HostID: exampleUserB.ID, FollowerID: exampleUserA.ID}
 	exampleFollowingRelAB = models.Following{HostID: exampleUserA.ID, FollowID: exampleUserB.ID}
+	exampleFollowerRelAB = models.Follower{HostID: uint(exampleUserB.ID), FollowerID: uint(exampleUserA.ID)}
+	exampleFollowingRelAB = models.Following{HostID: uint(exampleUserA.ID), FollowID: uint(exampleUserB.ID)}
 	// C follows B
 	exampleFollowerRelCB = models.Follower{HostID: exampleUserB.ID, FollowerID: exampleUserC.ID}
 	exampleFollowingRelCB = models.Following{HostID: exampleUserC.ID, FollowID: exampleUserB.ID}
+	exampleFollowerRelCB = models.Follower{HostID: uint(exampleUserB.ID), FollowerID: uint(exampleUserC.ID)}
+	exampleFollowingRelCB = models.Following{HostID: uint(exampleUserC.ID), FollowID: uint(exampleUserB.ID)}
 	models.DB.Create(&exampleFollowerRelAB)
 	models.DB.Create(&exampleFollowerRelCB)
 	models.DB.Create(&exampleFollowingRelAB)
@@ -114,7 +118,7 @@ func TestComment(t *testing.T) {
 		if err != nil {
 			t.Error(err)
 		}
-		assert.Equal(t, uint(1+idx), cnt)
+		assert.Equal(t, int64(1+idx), cnt)
 	}
 
 	// Test query comments

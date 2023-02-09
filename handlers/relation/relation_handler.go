@@ -1,10 +1,10 @@
 package relation
 
 import (
+	"github.com/fyved24/douyin/handlers/user/utils"
 	"net/http"
 	"strconv"
 
-	"github.com/fyved24/douyin/middleware"
 	"github.com/fyved24/douyin/models"
 	"github.com/fyved24/douyin/responses"
 	"github.com/fyved24/douyin/services"
@@ -36,9 +36,9 @@ type FollowerListResponse struct {
 func RelationAction(c *gin.Context) {
 	//1.取数据
 	//1.1 从token中获取用户id
-	strToken := c.Query("token")
-	tokenStruct, _ := middleware.CheckToken(strToken)
-	hostId := tokenStruct.UserId
+	token := c.Query("token")
+
+	hostId := utils.GetUserIDFromToken(token)
 	//1.2 获取待关注的用户id
 	getToUserId, _ := strconv.ParseInt(c.Query("to_user_id"), 10, 64)
 	guestId := uint(getToUserId)
@@ -55,9 +55,9 @@ func RelationAction(c *gin.Context) {
 		c.Abort()
 		return
 	}
-
+	var err error
 	//3.service层进行关注/取消关注处理
-	err := services.FollowAction(hostId, guestId, actionType)
+	err = services.FollowAction(hostId, guestId, actionType)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, responses.CommonResponse{
 			StatusCode: 1,
@@ -76,9 +76,8 @@ func FollowList(c *gin.Context) {
 
 	//1.数据预处理
 	//1.1获取用户本人id
-	strToken := c.Query("token")
-	tokenStruct, _ := middleware.CheckToken(strToken)
-	hostId := tokenStruct.UserId
+	token := c.Query("token")
+	hostId := utils.GetUserIDFromToken(token)
 	//1.2获取其他用户id
 	getGuestId, _ := strconv.ParseInt(c.Query("user_id"), 10, 64)
 	guestId := uint(getGuestId)
@@ -129,15 +128,13 @@ func FollowerList(c *gin.Context) {
 
 	//1.数据预处理
 	//1.1获取用户本人id
-	strToken := c.Query("token")
-	tokenStruct, _ := middleware.CheckToken(strToken)
-	hostId := tokenStruct.UserId
+	token := c.Query("token")
+	hostId := utils.GetUserIDFromToken(token)
 	//1.2获取其他用户id
 	getGuestId, _ := strconv.ParseInt(c.Query("user_id"), 10, 64)
 	guestId := uint(getGuestId)
-
-	//2.判断查询类型
 	var err error
+	//2.判断查询类型
 	var userList []models.User
 	if guestId == 0 {
 		//查本人的关注表
