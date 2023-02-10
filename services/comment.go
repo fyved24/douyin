@@ -9,7 +9,7 @@ import (
 	"github.com/fyved24/douyin/models"
 	"github.com/fyved24/douyin/responses"
 	"github.com/golang-jwt/jwt/v4"
-	_ "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
 )
 
@@ -20,11 +20,20 @@ import (
 // 评论创建日期的格式mm-dd
 const CREATE_DATE_FMT = "01-02"
 
+var ErrCommentFetchFailed = errors.New("get video's comments failed")
+var ErrUserFetchFailed = errors.New("can't find user")
+var ErrFollowingFetchFailed = errors.New("user subscribes find failed")
+
 // 没有引入cache获得视频的所有评论并且用连接表的方式获得用户的信息
 func getVideoComments(videoID uint, limit, offset int, logined bool, userID uint) (res []responses.Comment, err error) {
 	// 根据视频ID得到评论和评论发布者的一些基本用户信息
 	cms, err := models.QueryCommentsByVideoID(videoID, offset, limit)
-	if err != nil || len(cms) == 0 {
+	if err != nil {
+		logrus.Error(err)
+		err = ErrCommentFetchFailed
+		return
+	}
+	if len(cms) == 0 {
 		return
 	}
 	var userFollowed = map[uint]struct{}{}
@@ -32,6 +41,8 @@ func getVideoComments(videoID uint, limit, offset int, logined bool, userID uint
 		// 如果浏览评论的是已登录的用户需要得到它关注的用户
 		followedUsers, err := models.QueryFollowedUsersByUserID(userID)
 		if err != nil {
+			logrus.Error(err)
+			err = ErrFollowingFetchFailed
 			return nil, err
 		}
 		for _, usr := range followedUsers {
@@ -83,15 +94,20 @@ func internalTestBrowserLogined(tokenString *string) (logined bool, userID uint,
 	return
 }
 
+var ErrUserAuthFailed = errors.New("user authentication failed")
+
 func currentBrowserLogined(tokenString *string) (logined bool, userID uint, err error) {
 	clm, err := jwtutils.ParseToken(*tokenString)
 	if err != nil {
-
+		logrus.Error(err)
+		err = ErrUserAuthFailed
 		return
 	}
 	logined = clm.IsLogin
 	id, err := strconv.ParseUint(clm.UserID, 10, 64)
 	if err != nil {
+		logrus.Error(err)
+		err = ErrUserAuthFailed
 		return
 	}
 	userID = uint(id)
@@ -113,21 +129,30 @@ func userBasicInfo(userID uint) (*models.LiteUser, error) {
 	return res, err
 }
 
+var ErrAddCommentFailed = errors.New("publish video comment failed")
+var ErrModifyVideoStatsFailed = errors.New("change video comment count failed")
+
 func addVideoComment(videoID, userID uint, content string) (*responses.Comment, error) {
 	// 评论写数据库
 	mr, err := models.AddComment(videoID, userID, content, time.Now())
 	if err != nil {
+		logrus.Error(err)
+		err = ErrAddCommentFailed
 		return nil, err
 	}
 	// 更新视频评论数应该不太需要原子性
 	// TODO: 未来可能可以通过事务保证评论和评论数的原子性更新
 	err = models.IncreaseVideoCommentCount(videoID, 1)
 	if err != nil {
+		logrus.Error(err)
+		err = ErrModifyVideoStatsFailed
 		return nil, err
 	}
 	// 发表评论用户的基本信息
 	usrInfo, err := userBasicInfo(userID)
 	if err != nil {
+		logrus.Error(err)
+		err = ErrUserFetchFailed
 		return nil, err
 	}
 	// 返回信息
@@ -151,13 +176,22 @@ func AddVideoComment(videoID, userID uint, content string) (res *responses.Comme
 	return
 }
 
+var ErrDeleteCommentFailed = errors.New("delete video comment failed")
+
 func deldeteComment(commentID, userID, videoID uint) error {
 	// TODO: 原子化操作
 	err := models.DeleteComment(commentID, userID, videoID)
 	if err != nil {
+		logrus.Error(err)
+		err = ErrDeleteCommentFailed
 		return err
 	}
 	err = models.IncreaseVideoCommentCount(videoID, -1)
+	if err != nil {
+		logrus.Error(err)
+		err = ErrModifyVideoStatsFailed
+		return err
+	}
 	return err
 }
 
@@ -166,12 +200,16 @@ func DeleteComment(commentID, userID, videoID uint) error {
 	return deldeteComment(commentID, userID, videoID)
 }
 
+var ErrFindVideoFailed = errors.New("find video failed")
+
 func videoExist(videoID uint) (bool, error) {
 	_, err := models.QueryVideoCommentCount(videoID)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return false, nil
 		}
+		logrus.Error(err)
+		err = ErrFindVideoFailed
 		return false, err
 	}
 	return true, nil
