@@ -2,11 +2,14 @@ package services
 
 import (
 	"errors"
+	"strconv"
 	"time"
 
+	jwtutils "github.com/fyved24/douyin/handlers/user/utils"
 	"github.com/fyved24/douyin/models"
 	"github.com/fyved24/douyin/responses"
 	"github.com/golang-jwt/jwt/v4"
+	_ "github.com/sirupsen/logrus"
 	"gorm.io/gorm"
 )
 
@@ -80,14 +83,33 @@ func internalTestBrowserLogined(tokenString *string) (logined bool, userID uint,
 	return
 }
 
+func currentBrowserLogined(tokenString *string) (logined bool, userID uint, err error) {
+	clm, err := jwtutils.ParseToken(*tokenString)
+	if err != nil {
+
+		return
+	}
+	logined = clm.IsLogin
+	id, err := strconv.ParseUint(clm.UserID, 10, 64)
+	if err != nil {
+		return
+	}
+	userID = uint(id)
+	return
+}
+
 // 用户鉴权测试
 func BrowserLogined(tokenString *string) (logined bool, userID uint, err error) {
-	return internalTestBrowserLogined(tokenString)
+	// return internalTestBrowserLogined(tokenString)
+	return currentBrowserLogined(tokenString)
 }
 
 // 查询评论用户的基本信息
 func userBasicInfo(userID uint) (*models.LiteUser, error) {
 	res, err := models.QueryUserBasicInfo(userID)
+	if err != nil {
+		return nil, err
+	}
 	return res, err
 }
 

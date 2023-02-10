@@ -7,6 +7,7 @@ import (
 
 	"time"
 
+	jwtutils "github.com/fyved24/douyin/handlers/user/utils"
 	"github.com/fyved24/douyin/models"
 	"github.com/fyved24/douyin/services"
 	"github.com/gavv/httpexpect/v2"
@@ -27,8 +28,18 @@ func newExpect(t *testing.T) *httpexpect.Expect {
 	})
 }
 
-// 本地生成一些伪造的jwt
-func getTestUserToken(userID uint, logined bool, expired bool) string {
+func newBenchExpect(t *testing.B) *httpexpect.Expect {
+	return httpexpect.WithConfig(httpexpect.Config{
+		Client:   http.DefaultClient,
+		BaseURL:  serverAddr,
+		Reporter: httpexpect.NewAssertReporter(t),
+		Printers: []httpexpect.Printer{
+			httpexpect.NewDebugPrinter(t, true),
+		},
+	})
+}
+
+func getTestUserTokenBefore(userID uint, logined bool, expired bool) string {
 	claims := services.MySimpleUserClaims{
 		UserID:  userID,
 		Logined: logined,
@@ -54,7 +65,16 @@ func getTestUserToken(userID uint, logined bool, expired bool) string {
 	return ss
 }
 
-const BIG_UINT = 11
+func getTestUserTokenNow(userName string, userID uint, logined bool, expired bool) string {
+	return jwtutils.GetUserToken(userName, "", userID, logined)
+}
+
+// 本地生成一些伪造的jwt
+func getTestUserToken(userID uint, logined bool, expired bool) string {
+	return getTestUserTokenBefore(userID, logined, expired)
+}
+
+const BIG_UINT = 1000
 
 // 给数据库生成一些用户和视频
 func makeSomeUsersAndVideos() (users []models.User, videos []models.Video) {

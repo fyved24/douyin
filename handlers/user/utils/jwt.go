@@ -3,9 +3,10 @@ package utils
 import (
 	"errors"
 	"fmt"
-	"github.com/dgrijalva/jwt-go"
 	"strconv"
 	"time"
+
+	"github.com/dgrijalva/jwt-go"
 )
 
 var mySigningKey []byte = []byte("askldfjaqwiopeklasdjqwerfasdfawerfsldfjkalsdfj") //密钥
@@ -24,7 +25,7 @@ func GetUserToken(username string, password string, userID uint, islogin bool) s
 	myclaim := MyClaim{
 		Username: username,
 		Password: password,
-		UserID:   strconv.Itoa(int(userID)),
+		UserID:   strconv.FormatUint(uint64(userID), 10),
 		IsLogin:  islogin,
 		StandardClaims: jwt.StandardClaims{
 			NotBefore: time.Now().Unix() - 60,         //生效时间

@@ -118,7 +118,7 @@ func TestComment(t *testing.T) {
 		if err != nil {
 			t.Error(err)
 		}
-		assert.Equal(t, int64(1+idx), cnt)
+		assert.Equal(t, uint(1+idx), cnt)
 	}
 
 	// Test query comments
