@@ -3,9 +3,9 @@ package router
 import (
 	"github.com/fyved24/douyin/handlers/user"
 
-	comment "github.com/fyved24/douyin/handlers/comment"
-	relation "github.com/fyved24/douyin/handlers/relation"
-	video "github.com/fyved24/douyin/handlers/video"
+	"github.com/fyved24/douyin/handlers/comment"
+	"github.com/fyved24/douyin/handlers/relation"
+	"github.com/fyved24/douyin/handlers/video"
 
 	"github.com/fyved24/douyin/middleware"
 	"github.com/gin-gonic/gin"
@@ -20,15 +20,17 @@ func InitRouter(r *gin.Engine) {
 		douyinGroup.GET("/feed/", video.FeedVideoList)
 
 		publishGroup := douyinGroup.Group("publish")
+		publishGroup.Use(middleware.JWT())
 		{
-			publishGroup.GET("/action/", video.PublishVideoAction)
+			publishGroup.POST("/action/", video.PublishVideoAction)
 			publishGroup.GET("/list/", video.UserPublishVideoList)
 		}
 
 		// relation路由组
 		relationGroup := douyinGroup.Group("relation")
+		relationGroup.Use(middleware.JWT())
 		{
-			relationGroup.POST("/action/", relation.RelationAction).Use(middleware.JWT())
+			relationGroup.POST("/action/", relation.RelationAction).Use()
 			relationGroup.GET("/follow/list/", relation.FollowList).Use(middleware.JWT())
 			relationGroup.GET("/follower/list/", relation.FollowerList).Use(middleware.JWT())
 		}
