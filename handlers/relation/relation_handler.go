@@ -1,9 +1,10 @@
 package relation
 
 import (
-	"github.com/fyved24/douyin/handlers/user/utils"
 	"net/http"
 	"strconv"
+
+	"github.com/fyved24/douyin/handlers/user/utils"
 
 	"github.com/fyved24/douyin/models"
 	"github.com/fyved24/douyin/responses"
@@ -68,6 +69,7 @@ func RelationAction(c *gin.Context) {
 			StatusCode: 0,
 			StatusMsg:  "关注/取消关注成功！",
 		})
+		services.ClearLocalCache()
 	}
 }
 
