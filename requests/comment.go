@@ -5,7 +5,7 @@ import (
 )
 
 type CommentListRequest struct {
-	Token   string `json:"token" xml:"token" form:"token" binding:"required"`          // 用户鉴权token
+	Token   string `json:"token" xml:"token" form:"token" `                            // 用户鉴权token
 	VideoID uint   `json:"video_id" xml:"video_id" form:"video_id" binding:"required"` // 视频id
 }
 

@@ -122,6 +122,9 @@ func internalTestBrowserLogined(tokenString *string) (logined bool, userID uint,
 var ErrUserAuthFailed = errors.New("user authentication failed")
 
 func currentBrowserLogined(tokenString *string) (logined bool, userID uint, err error) {
+	if len(*tokenString) == 0 {
+		return false, 0, nil
+	}
 	clm, err := jwtutils.ParseToken(*tokenString)
 	if err != nil {
 		logrus.Error(err)
@@ -362,6 +365,7 @@ func addVideoCommentWithCache(videoID, userID uint, content string) (*responses.
 				cachedComments[i] = cachedComments[i-1]
 			}
 			cachedComments[idx] = *resp
+			break
 		}
 	}
 	// 将更新后的缓存存回去
