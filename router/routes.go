@@ -4,9 +4,9 @@ import (
 	"github.com/fyved24/douyin/handlers/user"
 
 	"github.com/fyved24/douyin/handlers/comment"
+	"github.com/fyved24/douyin/handlers/favorite"
 	"github.com/fyved24/douyin/handlers/relation"
 	"github.com/fyved24/douyin/handlers/video"
-
 	"github.com/fyved24/douyin/middleware"
 	"github.com/gin-gonic/gin"
 )
@@ -46,6 +46,13 @@ func InitRouter(r *gin.Engine) {
 			userGroup.POST("/register/", user.Register)
 			userGroup.POST("/login/", user.Login)
 			userGroup.GET("/", user.Info).Use(middleware.JWT())
+		}
+
+		favoriteGroup := douyinGroup.Group("favorite")
+		favoriteGroup.Use(middleware.JWT())
+		{
+			favoriteGroup.POST("/favorite/action/", favorite.Favorite)
+			favoriteGroup.GET("/favorite/list/", favorite.FavoriteList)
 		}
 
 	}

@@ -1,7 +1,6 @@
-package handlers
+package favorite
 
 import (
-	"fmt"
 	"github.com/fyved24/douyin/responses"
 	"github.com/fyved24/douyin/services"
 	"github.com/gin-gonic/gin"
@@ -11,12 +10,7 @@ import (
 // Favorite 点赞视频方法
 func Favorite(c *gin.Context) {
 
-	// 1. token 验证
-	token, _ := c.Get("token")
-	fmt.Println(token)
-	// 2. 获得
-	//userId := utils.GetUserIDByToken(token)
-	userId, _ := strconv.ParseInt("1", 10, 64)
+	userId, _ := strconv.ParseInt(c.Query("user_id"), 10, 64)
 
 	videoIdStr := c.Query("video_id")
 	videoId, _ := strconv.ParseInt(videoIdStr, 10, 64)
@@ -41,11 +35,7 @@ func Favorite(c *gin.Context) {
 
 func FavoriteList(c *gin.Context) {
 	// 1. token 验证
-	token, _ := c.Get("token")
-	fmt.Println(token)
-	// 2. 获得
-	//userId := utils.GetUserIDByToken(token)
-	userId, _ := strconv.ParseInt("1", 10, 64)
+	userId, _ := strconv.ParseInt(c.Query("user_id"), 10, 64)
 
 	res, err := services.FindAllFavorite(userId)
 
