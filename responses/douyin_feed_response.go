@@ -6,6 +6,6 @@ import (
 
 type DouyinFeedResponse struct {
 	CommonResponse
-	VideoList *[]models.Video
-	NextTime  int64
+	VideoList *[]models.Video `json:"video_list"`
+	NextTime  int64           `json:"next_time"`
 }

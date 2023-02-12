@@ -1,7 +1,9 @@
 package models
 
-import "gorm.io/gorm"
-import "gorm.io/driver/mysql"
+import (
+	"gorm.io/driver/mysql"
+	"gorm.io/gorm"
+)
 
 var (
 	DB *gorm.DB
