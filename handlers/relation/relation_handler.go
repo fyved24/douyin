@@ -69,7 +69,8 @@ func RelationAction(c *gin.Context) {
 			StatusCode: 0,
 			StatusMsg:  "关注/取消关注成功！",
 		})
-		services.ClearLocalCache()
+		// services.ClearLocalCache()
+		services.ChangeFollowCacheStates(hostId, guestId, services.FollowActionEnm(actionType))
 	}
 }
 

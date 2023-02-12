@@ -83,3 +83,14 @@ func QueryVideoCommentCount(videoID uint) (res uint, err error) {
 	err = DB.Model(&Video{}).Where("id = ?", videoID).Select("comment_count").Take(&res).Error
 	return
 }
+
+type LiteUserWithID struct {
+	ID uint
+	LiteUser
+}
+
+func QueryUsersInfo(userID []uint) ([]LiteUserWithID, error) {
+	var res []LiteUserWithID
+	err := DB.Model(&User{}).Select("id, name, follow_count, follower_count").Where("id in (?)", userID).Scan(&res).Error
+	return res, err
+}
