@@ -11,12 +11,12 @@ var (
 
 func InitDB() {
 	var err error
-	dsn := "root:123456@tcp(127.0.0.1:3306)/douyin?charset=utf8mb4&parseTime=True&loc=Local"
+	dsn := "douyin:douyinxiangmu@tcp(101.43.131.38:3306)/douyin?charset=utf8mb4&parseTime=True&loc=Local"
 	DB, err = gorm.Open(mysql.Open(dsn), &gorm.Config{})
 	if err != nil {
 		panic("failed to connect database")
 	}
-	err = DB.AutoMigrate(&User{}, &Video{}, &Comment{}, &Comment{}, &Follower{}, &Following{}, &Favorite{})
+	err = DB.AutoMigrate(&User{}, &Video{}, &Comment{}, &Comment{}, &Follower{}, &Following{}, &Favorite{}, &Message{})
 	if err != nil {
 		panic("failed to migrate database")
 	}
