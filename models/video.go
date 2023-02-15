@@ -28,6 +28,6 @@ func SaveVideo(video *Video) {
 
 func QueryUserVideoList(userID uint) (*[]Video, error) {
 	var videos []Video
-	err := DB.Model(&Video{}).Where("author_id=", userID).Find(&videos).Error
+	err := DB.Model(&Video{}).Where("author_id=?", userID).Find(&videos).Error
 	return &videos, err
 }
