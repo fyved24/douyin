@@ -51,8 +51,8 @@ func InitRouter(r *gin.Engine) {
 		favoriteGroup := douyinGroup.Group("favorite")
 		favoriteGroup.Use(middleware.JWT())
 		{
-			favoriteGroup.POST("/favorite/action/", favorite.Favorite)
-			favoriteGroup.GET("/favorite/list/", favorite.FavoriteList)
+			favoriteGroup.POST("/action/", favorite.Favorite)
+			favoriteGroup.GET("/list/", favorite.FavoriteList)
 		}
 
 	}
