@@ -33,6 +33,7 @@ func InitRouter(r *gin.Engine) {
 			relationGroup.POST("/action/", relation.RelationAction).Use()
 			relationGroup.GET("/follow/list/", relation.FollowList).Use(middleware.JWT())
 			relationGroup.GET("/follower/list/", relation.FollowerList).Use(middleware.JWT())
+			relationGroup.GET("/friend/list/", relation.FriendList).Use(middleware.JWT())
 		}
 
 		commentGroup := douyinGroup.Group("comment")

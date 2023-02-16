@@ -1,9 +1,10 @@
 package services
 
 import (
+	"testing"
+
 	"github.com/fyved24/douyin/models"
 	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 func TestFavoriteAction1(t *testing.T) {
@@ -24,7 +25,7 @@ func TestFavoriteAction2(t *testing.T) {
 
 func TestFindAllFavorite(t *testing.T) {
 	models.InitDB()
-	res, err := findAllFavorite(1)
+	res, err := FindAllFavorite(1)
 
 	t.Log(res)
 	assert.Equal(t, err, nil)
