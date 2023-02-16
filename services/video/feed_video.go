@@ -15,7 +15,7 @@ func FeedVideoList(latestTime time.Time) (*responses.DouyinFeedResponse, error) 
 	}
 	log.Printf("next time %v", nextTime)
 	return &responses.DouyinFeedResponse{
-		CommonResponse: responses.CommonResponse{StatusCode: 0},
+		CommonResponse: responses.CommonResponse{StatusCode: 0, StatusMsg: "success"},
 		VideoList:      videos,
 		NextTime:       nextTime,
 	}, err
@@ -23,14 +23,8 @@ func FeedVideoList(latestTime time.Time) (*responses.DouyinFeedResponse, error) 
 
 func QueryUserVideoList(userID uint) (*responses.DouyinFeedResponse, error) {
 	videos, err := models.QueryUserVideoList(userID)
-	nextTime := time.Now().UnixNano() / 1e6
-	if len(*videos) > 0 {
-		nextTime = (*videos)[0].CreatedAt.UnixNano() / 1e6
-	}
-	log.Printf("next time %v", nextTime)
 	return &responses.DouyinFeedResponse{
-		CommonResponse: responses.CommonResponse{StatusCode: 0},
+		CommonResponse: responses.CommonResponse{StatusCode: 0, StatusMsg: "success"},
 		VideoList:      videos,
-		NextTime:       nextTime,
 	}, err
 }

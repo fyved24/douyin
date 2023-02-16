@@ -14,3 +14,9 @@ func FeedVideoList(c *gin.Context) {
 	feedVideosRes, _ := video.FeedVideoList(req.LatestTime)
 	c.JSON(http.StatusOK, feedVideosRes)
 }
+
+func UserPublishVideoList(c *gin.Context) {
+	req := requests.NewDouyinPublishListRequest(c)
+	feedVideosRes, _ := video.QueryUserVideoList(req.UserID)
+	c.JSON(http.StatusOK, feedVideosRes)
+}
