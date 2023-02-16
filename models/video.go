@@ -7,7 +7,7 @@ import (
 type Video struct {
 	Model
 	AuthorID      uint      `json:"-"`
-	Author        User      `gorm:"foreignKey:AuthorID"`
+	Author        User      `gorm:"foreignKey:AuthorID" json:"author"`
 	PlayUrl       string    `json:"play_url"`
 	CoverUrl      string    `json:"cover_url"`
 	FavoriteCount int64     `json:"favorite_count"`
@@ -28,6 +28,6 @@ func SaveVideo(video *Video) {
 
 func QueryUserVideoList(userID uint) (*[]Video, error) {
 	var videos []Video
-	err := DB.Model(&Video{}).Where("author_id=?", userID).Find(&videos).Error
+	err := DB.Debug().Model(&Video{}).Where("author_id=?", userID).Find(&videos).Error
 	return &videos, err
 }

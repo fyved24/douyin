@@ -1,11 +1,13 @@
 package requests
 
-import "github.com/gin-gonic/gin"
+import (
+	"github.com/gin-gonic/gin"
+	"strconv"
+)
 
 type DouyinPublishListRequest struct {
 	UserID uint
 	Token  string
-	Title  string
 }
 
 func NewDouyinPublishListRequest(c *gin.Context) *DouyinPublishListRequest {
@@ -16,8 +18,8 @@ func NewDouyinPublishListRequest(c *gin.Context) *DouyinPublishListRequest {
 
 func (r *DouyinPublishListRequest) check(c *gin.Context) {
 
-	userID := c.GetString("user_id ")
-	r.Title = userID
+	userID, _ := strconv.ParseUint(c.GetString("user_id"), 10, 64)
+	r.UserID = uint(userID)
 	token := c.Param("token")
 	r.Token = token
 

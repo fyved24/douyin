@@ -32,12 +32,9 @@ func addFavorite(userId int64, videoId int64) error {
 	err := models.DB.Transaction(func(tx *gorm.DB) error {
 		// 在事务中执行一些 db 操作
 		// 1.新增点赞操作
-		user := new(models.User)
-		if err := tx.First(user, userId).Error; err != nil {
-			return err
-		}
 		video := new(models.Video)
-		if err := tx.First(video, videoId).Error; err != nil {
+
+		if err := tx.First(&video, videoId).Error; err != nil {
 			return err
 		}
 		var favoriteExit = &models.Favorite{}
@@ -108,7 +105,7 @@ func FindAllFavorite(userId int64) ([]models.Video, error) {
 
 	for _, m := range favoriteList {
 		var video = models.Video{}
-		if err := models.DB.Where("id = ?", m.ID).First(&video).Error; err != nil {
+		if err := models.DB.Where("id = ?", m.VideoID).First(&video).Error; err != nil {
 			return nil, err
 		}
 		videoList = append(videoList, video)
