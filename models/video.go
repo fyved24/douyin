@@ -31,3 +31,8 @@ func QueryUserVideoList(userID uint) (*[]Video, error) {
 	err := DB.Debug().Model(&Video{}).Where("author_id=?", userID).Find(&videos).Error
 	return &videos, err
 }
+
+// SelectWorkCountByID 根据用户ID查找某个用户的视频数量
+func SelectWorkCountByID(userID uint) uint {
+	return 0
+}
