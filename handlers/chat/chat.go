@@ -19,7 +19,7 @@ func UserMessageLog(ctx *gin.Context) {
 	}
 	userID := tokenUserID.UserID
 	targetID := ctx.Query("to_user_id")
-	messages, err := services.GetChatLog(userID, targetID)
+	messages, err := services.GetChatLogWithCache(userID, targetID)
 	if err != nil {
 		ctx.JSON(500, responses.CommonResponse{
 			StatusCode: 0,
