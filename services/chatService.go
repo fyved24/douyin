@@ -56,23 +56,33 @@ func CreateMessage(userID string, targetID string, content string, actionType st
 }
 
 func getChatLogFromCache(redisClient *redis.Client, userID string, targetID string) (*[]models.Message, error) {
-	key := fmt.Sprintf("chat:%s:%s", userID, targetID)
-	data, err := redisClient.Get(context.Background(), key).Result()
+	messageID, err := redisClient.Get(context.Background(), fmt.Sprintf("chat:%s:%s:messageID", userID, targetID)).Result()
+	if err != nil {
+		return nil, err
+	}
+
+	data, err := redisClient.HGetAll(context.Background(), fmt.Sprintf("chat:%s:%s:%s", userID, targetID, messageID)).Result()
 	if err != nil {
 		return nil, err
 	}
 	var messages []models.Message
-	if err := json.Unmarshal([]byte(data), &messages); err != nil {
-		return nil, err
+	for _, messageData := range data {
+		var message models.Message
+		err = json.Unmarshal([]byte(messageData), &message)
+		if err != nil {
+			return nil, err
+		}
+		messages = append(messages, message)
 	}
 	return &messages, nil
 }
 
 func setChatLogToCache(redisClient *redis.Client, userID string, targetID string, messages []models.Message) error {
-	key := fmt.Sprintf("chat:%s:%s", userID, targetID)
+	messageID := messages[0].ID
+	key := fmt.Sprintf("chat:%s:%s:%s:", userID, targetID, messageID)
 	data, err := json.Marshal(messages)
 	if err != nil {
 		return err
 	}
-	return redisClient.Set(context.Background(), key, data, 0).Err()
+	return redisClient.HSet(context.Background(), key, data, 0).Err()
 }
