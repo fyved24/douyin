@@ -1,6 +1,7 @@
 package router
 
 import (
+	"github.com/fyved24/douyin/handlers/chat"
 	"github.com/fyved24/douyin/handlers/user"
 
 	"github.com/fyved24/douyin/handlers/comment"
@@ -33,6 +34,7 @@ func InitRouter(r *gin.Engine) {
 			relationGroup.POST("/action/", relation.RelationAction).Use()
 			relationGroup.GET("/follow/list/", relation.FollowList).Use(middleware.JWT())
 			relationGroup.GET("/follower/list/", relation.FollowerList).Use(middleware.JWT())
+			relationGroup.GET("/friend/list/", relation.FriendList).Use(middleware.JWT())
 		}
 
 		commentGroup := douyinGroup.Group("comment")
@@ -51,8 +53,14 @@ func InitRouter(r *gin.Engine) {
 		favoriteGroup := douyinGroup.Group("favorite")
 		favoriteGroup.Use(middleware.JWT())
 		{
-			favoriteGroup.POST("/favorite/action/", favorite.Favorite)
-			favoriteGroup.GET("/favorite/list/", favorite.FavoriteList)
+			favoriteGroup.POST("/action/", favorite.Favorite)
+			favoriteGroup.GET("/list/", favorite.FavoriteList)
+		}
+		//chat路由组
+		chatGroup := douyinGroup.Group("message")
+		{
+			chatGroup.POST("/action/", chat.CreateMessage)
+			chatGroup.GET("/chat/", chat.UserMessageLog)
 		}
 
 	}

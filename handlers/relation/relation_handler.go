@@ -12,8 +12,8 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// ReturnFollower 关注表与粉丝表共用的用户数据模型
-type ReturnFollower struct {
+// ReturnUser 关注表与粉丝表共用的用户数据模型
+type ReturnUser struct {
 	Id            uint   `json:"id"`
 	Name          string `json:"name"`
 	FollowCount   uint   `json:"follow_count"`
@@ -21,17 +21,23 @@ type ReturnFollower struct {
 	IsFollow      bool   `json:"is_follow"`
 }
 
-// FollowingListResponse 关注表相应结构体
-type FollowingListResponse struct {
+// UserListResponse 关注表，粉丝表，好友表公用结构体
+type UserListResponse struct {
 	responses.CommonResponse
-	UserList []ReturnFollower `json:"user_list"`
+	UserList []ReturnUser `json:"user_list"`
 }
 
-// FollowerListResponse 粉丝表相应结构体
-type FollowerListResponse struct {
-	responses.CommonResponse
-	UserList []ReturnFollower `json:"user_list"`
-}
+// // UserListResponse 粉丝表相应结构体
+// type UserListResponse struct {
+// 	responses.CommonResponse
+// 	UserList []ReturnUser `json:"user_list"`
+// }
+
+// // UserListResponse 好友表相应结构体
+// type FriendListResponse struct {
+// 	responses.CommonResponse
+// 	UserList []ReturnUser `json:"user_list"`
+// }
 
 // RelationAction 关注/取消关注操作
 func RelationAction(c *gin.Context) {
@@ -97,18 +103,18 @@ func FollowList(c *gin.Context) {
 	}
 
 	//构造返回的数据
-	var ReturnFollowerList = make([]ReturnFollower, len(userList))
+	var ReturnUserList = make([]ReturnUser, len(userList))
 	for i, m := range userList {
-		ReturnFollowerList[i].Id = m.ID
-		ReturnFollowerList[i].Name = m.Name
-		ReturnFollowerList[i].FollowCount = m.FollowCount
-		ReturnFollowerList[i].FollowerCount = m.FollowerCount
-		ReturnFollowerList[i].IsFollow = services.IsFollowing(hostId, m.ID)
+		ReturnUserList[i].Id = m.ID
+		ReturnUserList[i].Name = m.Name
+		ReturnUserList[i].FollowCount = m.FollowCount
+		ReturnUserList[i].FollowerCount = m.FollowerCount
+		ReturnUserList[i].IsFollow = services.IsFollowing(hostId, m.ID)
 	}
 
 	//3.响应返回
 	if err != nil {
-		c.JSON(http.StatusBadRequest, FollowingListResponse{
+		c.JSON(http.StatusBadRequest, UserListResponse{
 			CommonResponse: responses.CommonResponse{
 				StatusCode: 1,
 				StatusMsg:  "查找列表失败！",
@@ -116,12 +122,12 @@ func FollowList(c *gin.Context) {
 			UserList: nil,
 		})
 	} else {
-		c.JSON(http.StatusOK, FollowingListResponse{
+		c.JSON(http.StatusOK, UserListResponse{
 			CommonResponse: responses.CommonResponse{
 				StatusCode: 0,
 				StatusMsg:  "已找到列表！",
 			},
-			UserList: ReturnFollowerList,
+			UserList: ReturnUserList,
 		})
 	}
 }
@@ -140,26 +146,26 @@ func FollowerList(c *gin.Context) {
 	//2.判断查询类型
 	var userList []models.User
 	if guestId == 0 {
-		//查本人的关注表
+		//查本人的粉丝表
 		userList, err = services.FollowerList(hostId)
 	} else {
-		//查对方的关注表
+		//查对方的粉丝表
 		userList, err = services.FollowerList(guestId)
 	}
 
 	//3.判断查询类型，从数据库取用户列表
-	var ReturnFollowerList = make([]ReturnFollower, len(userList))
+	var ReturnUserList = make([]ReturnUser, len(userList))
 	for i, m := range userList {
-		ReturnFollowerList[i].Id = m.ID
-		ReturnFollowerList[i].Name = m.Name
-		ReturnFollowerList[i].FollowCount = m.FollowCount
-		ReturnFollowerList[i].FollowerCount = m.FollowerCount
-		ReturnFollowerList[i].IsFollow = services.IsFollowing(hostId, m.ID)
+		ReturnUserList[i].Id = m.ID
+		ReturnUserList[i].Name = m.Name
+		ReturnUserList[i].FollowCount = m.FollowCount
+		ReturnUserList[i].FollowerCount = m.FollowerCount
+		ReturnUserList[i].IsFollow = services.IsFollowing(hostId, m.ID)
 	}
 
 	//3.处理
 	if err != nil {
-		c.JSON(http.StatusBadRequest, FollowerListResponse{
+		c.JSON(http.StatusBadRequest, UserListResponse{
 			CommonResponse: responses.CommonResponse{
 				StatusCode: 1,
 				StatusMsg:  "查找列表失败！",
@@ -167,12 +173,78 @@ func FollowerList(c *gin.Context) {
 			UserList: nil,
 		})
 	} else {
-		c.JSON(http.StatusOK, FollowerListResponse{
+		c.JSON(http.StatusOK, UserListResponse{
 			CommonResponse: responses.CommonResponse{
 				StatusCode: 0,
 				StatusMsg:  "已找到列表！",
 			},
-			UserList: ReturnFollowerList,
+			UserList: ReturnUserList,
+		})
+	}
+}
+
+// FriendList 获取用户好友列表
+func FriendList(c *gin.Context) {
+
+	//1.数据预处理
+	//1.1获取用户本人id
+	token := c.Query("token")
+	hostId := utils.GetUserIDFromToken(token)
+	//1.2获取其他用户id
+	getGuestId, _ := strconv.ParseInt(c.Query("user_id"), 10, 64)
+	guestId := uint(getGuestId)
+	var err error
+	//2.判断查询类型
+	var followerList []models.User
+	var followingList []models.User
+	var userList []models.User
+
+	if guestId == 0 {
+		//查本人的好友表
+		followerList, err = services.FollowerList(hostId)
+		followingList, err = services.FollowingList(hostId)
+	} else {
+		//查对方的好友表
+		followerList, err = services.FollowerList(guestId)
+		followingList, err = services.FollowingList(guestId)
+	}
+	var mapper = make(map[uint]uint, len(followerList))
+	for _, follower := range followerList {
+		mapper[uint(follower.ID)] = hostId
+	}
+	for _, following := range followingList {
+		_, ok := mapper[uint(following.ID)]
+		if ok {
+			userList = append(userList, following)
+		}
+	}
+
+	//3.判断查询类型，从数据库取用户列表
+	var ReturnUserList = make([]ReturnUser, len(userList))
+	for i, m := range userList {
+		ReturnUserList[i].Id = m.ID
+		ReturnUserList[i].Name = m.Name
+		ReturnUserList[i].FollowCount = m.FollowCount
+		ReturnUserList[i].FollowerCount = m.FollowerCount
+		ReturnUserList[i].IsFollow = services.IsFollowing(hostId, m.ID)
+	}
+
+	//3.处理
+	if err != nil {
+		c.JSON(http.StatusBadRequest, UserListResponse{
+			CommonResponse: responses.CommonResponse{
+				StatusCode: 1,
+				StatusMsg:  "查找列表失败！",
+			},
+			UserList: nil,
+		})
+	} else {
+		c.JSON(http.StatusOK, UserListResponse{
+			CommonResponse: responses.CommonResponse{
+				StatusCode: 0,
+				StatusMsg:  "已找到列表！",
+			},
+			UserList: ReturnUserList,
 		})
 	}
 }
