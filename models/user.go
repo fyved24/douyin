@@ -85,8 +85,33 @@ func SelectFollowerCountByID(id uint) uint {
 	return user.FollowerCount
 }
 
-func SelectTotalFavoritedByID(id uint) uint {
+// SelectWorkCountByID 根据用户ID查找某个用户的视频数量
+func SelectWorkCountByID(userID uint) uint {
+	var videos []Video
+	var count int64
+	DB.Where("author_id = ?", userID).Find(&videos).Count(&count)
+	return uint(count)
+}
+
+// SelectFavoriteCountByID 根据用户ID查找某个用户点赞过的视频数量
+func SelectFavoriteCountByID(id uint) uint {
+	var favorits []Favorite
+	var count int64
 	var user User
-	DB.Where("id = ?", id).First(&user)
-	return user.TotalFavorited
+	DB.Where("user_id = ? AND status = ?", int64(id), int64(1)).Find(&favorits).Count(&count)
+	DB.Where("id = ?", id).First(&user).Update("favorite_count", uint(count))
+	return uint(count)
+}
+
+// SelectTotalFavoritedByID 根据用户ID查找某个用户被点赞的个数
+func SelectTotalFavoritedByID(id uint) uint {
+	var videos []Video
+	var count uint
+	var user User
+	DB.Where("author_id = ?", id).Find(&videos)
+	for i := 0; i < len(videos); i++ {
+		count += uint(videos[i].FavoriteCount)
+	}
+	DB.Where("id = ?", id).First(&user).Update("total_favorited", count)
+	return count
 }
