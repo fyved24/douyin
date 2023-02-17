@@ -90,9 +90,3 @@ func SelectTotalFavoritedByID(id uint) uint {
 	DB.Where("id = ?", id).First(&user)
 	return user.TotalFavorited
 }
-
-func SelectFavoriteCountByID(id uint) uint {
-	var user User
-	DB.Where("id = ?", id).First(&user)
-	return user.FavoriteCount
-}

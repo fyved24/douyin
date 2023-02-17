@@ -49,7 +49,7 @@ func addFavorite(userId int64, videoId int64) error {
 			if res.Error != nil {
 				return res.Error
 			}
-		} else { // 存在
+		} else {                          // 存在
 			if favoriteExit.Status == 0 { // 修改状态， count +1
 				tx.Model(favoriteExit).Update("status", 1)
 

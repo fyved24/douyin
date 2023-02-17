@@ -11,6 +11,7 @@ var (
 
 func InitDB() {
 	var err error
+
 	dsn := "douyin:douyinxiangmu@tcp(101.43.131.38:3306)/douyin?charset=utf8mb4&parseTime=True&loc=Local"
 	DB, err = gorm.Open(mysql.Open(dsn), &gorm.Config{})
 	if err != nil {
