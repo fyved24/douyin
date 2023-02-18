@@ -7,7 +7,7 @@ import (
 
 	"github.com/fyved24/douyin/requests"
 	"github.com/fyved24/douyin/responses"
-	"github.com/fyved24/douyin/services"
+	"github.com/fyved24/douyin/services/comment"
 	"github.com/gin-gonic/gin"
 )
 
@@ -75,7 +75,7 @@ func CommentAction(c *gin.Context) {
 		return
 	}
 	// 评论操作都需要用户已登录
-	logined, userID, err := services.BrowserLogined(&commentActionRequest.Token)
+	logined, userID, err := comment.BrowserLogined(&commentActionRequest.Token)
 	if err != nil {
 		c.JSON(http.StatusOK, responses.CommentActionResponse{
 			CommonResponse: responses.CommonResponse{StatusCode: COMMENT_STATUS_PARSE_JWT_ERR, StatusMsg: err.Error()},
@@ -89,7 +89,7 @@ func CommentAction(c *gin.Context) {
 		return
 	}
 	// 检查视频是否真的存在
-	if exist, err := services.VideoExist(commentActionRequest.VideoID); err != nil {
+	if exist, err := comment.VideoExist(commentActionRequest.VideoID); err != nil {
 		c.JSON(http.StatusOK, responses.CommentActionResponse{
 			CommonResponse: responses.CommonResponse{StatusCode: COMMENT_STATUS_VIDEO_DONT_EXIST, StatusMsg: STATUS_MSG_VIDEO_DONT_EXIST},
 		})
@@ -110,7 +110,7 @@ func CommentAction(c *gin.Context) {
 			return
 		}
 		// 用户添加评论操作
-		respComment, err := services.AddVideoComment(commentActionRequest.VideoID, userID, commentActionRequest.CommentText)
+		respComment, err := comment.AddVideoComment(commentActionRequest.VideoID, userID, commentActionRequest.CommentText)
 		if err != nil {
 			c.JSON(http.StatusOK, responses.CommentActionResponse{
 				CommonResponse: responses.CommonResponse{StatusCode: COMMENT_STATUS_PUBLISH_FAILED, StatusMsg: err.Error()},
@@ -121,7 +121,7 @@ func CommentAction(c *gin.Context) {
 			Comment: *respComment})
 	case requests.COMMENT_DELETE:
 		// 用户删除评论操作
-		err := services.DeleteComment(commentActionRequest.CommentID, userID, commentActionRequest.VideoID)
+		err := comment.DeleteComment(commentActionRequest.CommentID, userID, commentActionRequest.VideoID)
 		if err != nil {
 			c.JSON(http.StatusOK, responses.CommentActionResponse{
 				CommonResponse: responses.CommonResponse{StatusCode: COMMENT_STATUS_DELETE_FAILED, StatusMsg: err.Error()},
@@ -149,7 +149,7 @@ func CommentList(c *gin.Context) {
 		return
 	}
 	// 检查视频是否真的存在
-	if exist, err := services.VideoExist(commentListRequest.VideoID); err != nil {
+	if exist, err := comment.VideoExist(commentListRequest.VideoID); err != nil {
 		c.JSON(http.StatusOK, responses.CommentListResponse{
 			CommonResponse: responses.CommonResponse{StatusCode: COMMENT_STATUS_VIDEO_DONT_EXIST, StatusMsg: STATUS_MSG_VIDEO_DONT_EXIST},
 		})
@@ -161,7 +161,7 @@ func CommentList(c *gin.Context) {
 		return
 	}
 	// 检查浏览用户是否登录
-	logined, userID, err := services.BrowserLogined(&commentListRequest.Token)
+	logined, userID, err := comment.BrowserLogined(&commentListRequest.Token)
 	if err != nil {
 		c.JSON(http.StatusOK, responses.CommentListResponse{
 			CommonResponse: responses.CommonResponse{StatusCode: COMMENT_STATUS_PARSE_JWT_ERR, StatusMsg: err.Error()},
@@ -169,7 +169,7 @@ func CommentList(c *gin.Context) {
 		return
 	}
 	// 查询视频的所用评论
-	videoComments, err := services.GetVideoComments(commentListRequest.VideoID, logined, userID)
+	videoComments, err := comment.GetVideoComments(commentListRequest.VideoID, logined, userID)
 	if err != nil {
 		c.JSON(http.StatusOK, responses.CommentListResponse{
 			CommonResponse: responses.CommonResponse{StatusCode: COMMENT_STATUS_GET_VIDEO_COMM_ERR, StatusMsg: err.Error()},
