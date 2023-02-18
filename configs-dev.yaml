@@ -1,0 +1,31 @@
+# mysql configuration
+#mysql:
+#  url: ""
+#  username: root
+#  password:
+# redis configuration
+#redis:
+#  db: 0
+#  addr: 127.0.0.1:6379
+#  password: ""
+#redis:
+#  host: "127.0.0.1"
+#  port: 6379
+
+# settings-dev.yaml
+name: "go-gin"
+port: 8022
+logsAddress: "./logs/"
+
+#mysql:
+#  name: "root"
+#  host: "120.XX.XX.XX"
+#  port: 3306
+#  password: "XXXXXXXX"
+#  dbName: "test"
+
+redis:
+  addr: "127.0.0.1:6379"
+  password:
+  DB: 0
+
