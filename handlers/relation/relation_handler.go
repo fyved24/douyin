@@ -9,6 +9,7 @@ import (
 	"github.com/fyved24/douyin/models"
 	"github.com/fyved24/douyin/responses"
 	"github.com/fyved24/douyin/services"
+	"github.com/fyved24/douyin/services/comment"
 	"github.com/gin-gonic/gin"
 )
 
@@ -75,8 +76,8 @@ func RelationAction(c *gin.Context) {
 			StatusCode: 0,
 			StatusMsg:  "关注/取消关注成功！",
 		})
-		// services.ClearLocalCache()
-		services.ChangeFollowCacheStates(hostId, guestId, services.FollowActionEnm(actionType))
+		// 修改关注关系后更改本地缓存
+		comment.ChangeFollowCacheStates(hostId, guestId, comment.FollowActionEnm(actionType))
 	}
 }
 

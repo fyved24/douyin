@@ -1,6 +1,8 @@
 package main
 
 import (
+	"fmt"
+	"github.com/fyved24/douyin/configs"
 	"github.com/fyved24/douyin/models"
 	"github.com/fyved24/douyin/router"
 	"github.com/gin-contrib/pprof"
@@ -8,9 +10,12 @@ import (
 )
 
 func main() {
+
+	configs.InitConfig()
 	app := gin.Default()
-	models.InitDB()
+	models.InitAllDB()
 	router.InitRouter(app)
 	pprof.Register(app)
 	app.Run(":8080")
+	app.Run(fmt.Sprintf(":%d", configs.Settings.Port))
 }

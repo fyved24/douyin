@@ -1,4 +1,4 @@
-package services
+package comment
 
 import (
 	"errors"
@@ -57,7 +57,7 @@ func cacheInit() {
 // 没有引入cache获得视频的所有评论并且用连接表的方式获得用户的信息
 func getVideoComments(videoID uint, limit, offset int, logined bool, userID uint) (res []responses.Comment, err error) {
 	// 根据视频ID得到评论和评论发布者的一些基本用户信息
-	cms, err := models.QueryCommentsByVideoID(videoID, offset, limit)
+	cms, err := models.FindCommentsByVideoID(videoID, offset, limit)
 	if err != nil {
 		logrus.Error(err)
 		err = ErrCommentFetchFailed
@@ -69,7 +69,7 @@ func getVideoComments(videoID uint, limit, offset int, logined bool, userID uint
 	var userFollowed = map[uint]struct{}{}
 	if logined {
 		// 如果浏览评论的是已登录的用户需要得到它关注的用户
-		followedUsers, err := models.QueryFollowedUsersByUserID(userID)
+		followedUsers, err := models.FindFollowedUsersByUserID(userID)
 		if err != nil {
 			logrus.Error(err)
 			err = ErrFollowingFetchFailed
@@ -157,7 +157,7 @@ func BrowserLogined(tokenString *string) (logined bool, userID uint, err error) 
 
 // 查询评论用户的基本信息
 func userBasicInfo(userID uint) (*models.LiteUser, error) {
-	res, err := models.QueryUserBasicInfo(userID)
+	res, err := models.FindUserInfoByID(userID)
 	if err != nil {
 		return nil, err
 	}
@@ -242,7 +242,7 @@ func DeleteComment(commentID, userID, videoID uint) error {
 var ErrFindVideoFailed = errors.New("find video failed")
 
 func videoExist(videoID uint) (bool, error) {
-	_, err := models.QueryVideoCommentCount(videoID)
+	_, err := models.FindVideoCommentCountByID(videoID)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return false, nil
@@ -301,7 +301,7 @@ func getVideoCommentsWithCache(videoID, userID uint, logined bool) (res []respon
 	}
 	var userFollowed = map[uint]struct{}{}
 	// 如果浏览评论的是已登录的用户需要得到它关注的用户
-	followedUsers, err := models.QueryFollowedUsersByUserID(userID)
+	followedUsers, err := models.FindFollowedUsersByUserID(userID)
 	if err != nil {
 		logrus.Error(err)
 		err = ErrFollowingFetchFailed
@@ -422,7 +422,7 @@ func getUserFollowsWithCache(userID uint) (map[uint]struct{}, error) {
 	localCacheLock.Unlock()
 	// 如果本地缓存中没有找到该用户的关注关系,从数据库中请求到相应数据放到缓存中
 	if !ok {
-		followedUsers, err := models.QueryFollowedUsersByUserID(userID)
+		followedUsers, err := models.FindFollowedUsersByUserID(userID)
 		if err != nil {
 			logrus.Error(err)
 			err = ErrFollowingFetchFailed
@@ -487,7 +487,7 @@ func fillCommentUsersInfoWithCache(needFill []responses.Comment) error {
 	}
 	localCacheLock.Unlock()
 	if needQuery != nil {
-		res, err := models.QueryUsersInfo(needQuery)
+		res, err := models.FindUsersInfoByIDs(needQuery)
 		if err != nil {
 			logrus.Error(err)
 			err = ErrUserFetchFailed

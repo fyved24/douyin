@@ -9,7 +9,7 @@ import (
 
 	jwtutils "github.com/fyved24/douyin/handlers/user/utils"
 	"github.com/fyved24/douyin/models"
-	"github.com/fyved24/douyin/services"
+	"github.com/fyved24/douyin/services/comment"
 	"github.com/gavv/httpexpect/v2"
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/hashicorp/go-uuid"
@@ -40,7 +40,7 @@ func newBenchExpect(t *testing.B) *httpexpect.Expect {
 }
 
 func getTestUserTokenBefore(userID uint, logined bool, expired bool) string {
-	claims := services.MySimpleUserClaims{
+	claims := comment.MySimpleUserClaims{
 		UserID:  userID,
 		Logined: logined,
 		RegisteredClaims: jwt.RegisteredClaims{
@@ -58,7 +58,7 @@ func getTestUserTokenBefore(userID uint, logined bool, expired bool) string {
 		claims.ExpiresAt = claims.IssuedAt
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	ss, err := token.SignedString(services.MySecretKey)
+	ss, err := token.SignedString(comment.MySecretKey)
 	if err != nil {
 		panic(err)
 	}

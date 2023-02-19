@@ -3,14 +3,17 @@ module github.com/fyved24/douyin
 go 1.17
 
 require (
+	github.com/bsm/redislock v0.9.0
 	github.com/dgraph-io/ristretto v0.1.1
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
+	github.com/fatih/color v1.14.1
 	github.com/gin-contrib/pprof v1.4.0
 	github.com/gin-gonic/gin v1.8.2
 	github.com/go-redis/redis/v8 v8.11.5
 	github.com/golang-jwt/jwt/v4 v4.4.3
 	github.com/hashicorp/go-uuid v1.0.3
 	github.com/sirupsen/logrus v1.9.0
+	github.com/spf13/viper v1.15.0
 	github.com/stretchr/testify v1.8.1
 	gorm.io/driver/mysql v1.4.5
 	gorm.io/gorm v1.24.3
