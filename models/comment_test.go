@@ -114,7 +114,7 @@ func TestComment(t *testing.T) {
 		assert.Equal(t, int64(1+idx), exampleVideo.CommentCount)
 
 		// Test query video count
-		cnt, err := models.QueryVideoCommentCount(exampleVideo.ID)
+		cnt, err := models.FindVideoCommentCountByID(exampleVideo.ID)
 		if err != nil {
 			t.Error(err)
 		}
@@ -122,7 +122,7 @@ func TestComment(t *testing.T) {
 	}
 
 	// Test query comments
-	qr, err := models.QueryCommentsByVideoID(exampleVideo.ID, -1, -1)
+	qr, err := models.FindCommentsByVideoID(exampleVideo.ID, -1, -1)
 	if err != nil {
 		t.Error(err)
 	}
@@ -151,7 +151,7 @@ func TestComment(t *testing.T) {
 		}
 		assert.Equal(t, int64(len(comments)-1-idx), exampleVideo.CommentCount)
 
-		cnt, err := models.QueryVideoCommentCount(exampleVideo.ID)
+		cnt, err := models.FindVideoCommentCountByID(exampleVideo.ID)
 		if err != nil {
 			t.Error(err)
 		}
@@ -159,7 +159,7 @@ func TestComment(t *testing.T) {
 	}
 
 	// Test query comments
-	qr, err = models.QueryCommentsByVideoID(exampleVideo.ID, -1, -1)
+	qr, err = models.FindCommentsByVideoID(exampleVideo.ID, -1, -1)
 	if err != nil {
 		t.Error(err)
 	}
@@ -175,7 +175,7 @@ func assertUserBasicInfo(t *testing.T, expect *models.User, actrual *models.Lite
 func TestUserBasicInfo(t *testing.T) {
 	users := []models.User{exampleUserA, exampleUserB, exampleUserC}
 	for _, user := range users {
-		ub, err := models.QueryUserBasicInfo(user.ID)
+		ub, err := models.FindUserInfoByID(user.ID)
 		if err != nil {
 			t.Error(err)
 		}
@@ -189,7 +189,7 @@ func TestUserBasicInfo(t *testing.T) {
 
 func TestFollow(t *testing.T) {
 	// A follows B
-	followed, err := models.QueryFollowedUsersByUserID(exampleUserA.ID)
+	followed, err := models.FindFollowedUsersByUserID(exampleUserA.ID)
 	if err != nil {
 		t.Error(err)
 	}
@@ -197,14 +197,14 @@ func TestFollow(t *testing.T) {
 	assert.Equal(t, followed[0], exampleUserB.ID)
 
 	// C follows B
-	followed, err = models.QueryFollowedUsersByUserID(exampleUserC.ID)
+	followed, err = models.FindFollowedUsersByUserID(exampleUserC.ID)
 	if err != nil {
 		t.Error(err)
 	}
 	assert.Len(t, followed, 1)
 	assert.Equal(t, followed[0], exampleUserB.ID)
 
-	followed, err = models.QueryFollowedUsersByUserID(exampleUserB.ID)
+	followed, err = models.FindFollowedUsersByUserID(exampleUserB.ID)
 	if err != nil {
 		t.Error(err)
 	}

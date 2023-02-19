@@ -26,7 +26,7 @@ type User struct {
 	BackgroundImage string `json:"background_image,omitempty"` // 用户个人页顶部大图
 	FavoriteCount   int64  `json:"favorite_count,omitempty"`   // 喜欢数
 	Signature       string `json:"signature,omitempty"`        // 个人简介
-	TotalFavorited  string `json:"total_favorited,omitempty"`  // 获赞数量
+	TotalFavorited  int64  `json:"total_favorited,omitempty"`  // 获赞数量
 	WorkCount       int64  `json:"work_count,omitempty"`       // 作品数
 }
 
