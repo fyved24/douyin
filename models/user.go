@@ -15,7 +15,7 @@ type User struct {
 	Comments        []Comment `json:"-"`
 }
 
-// 根据用户名查找是否存在该用户
+// HasExistUserByUsername 根据用户名查找是否存在该用户
 func HasExistUserByUsername(username string) bool {
 	if len(username) == 0 {
 		return false
@@ -28,7 +28,7 @@ func HasExistUserByUsername(username string) bool {
 	return false
 }
 
-// 使用用户名、加密后的密码以及令牌新建一个用户
+// AddUser 使用用户名、加密后的密码以及令牌新建一个用户
 func AddUser(username string, password string, followCount uint, followerCount uint,
 	totalFavorited uint, favoriteCount uint) uint {
 	var user User
@@ -44,7 +44,7 @@ func AddUser(username string, password string, followCount uint, followerCount u
 	return user.ID
 }
 
-// 如果能根据用户名和密码找到用户，返回用户ID；否则返回0表示找不到
+// SelectIDByUsernameAndPassword 如果能根据用户名和密码找到用户，返回用户ID；否则返回0表示找不到
 func SelectIDByUsernameAndPassword(username string, password string) (bool, uint) {
 	var user User
 	DB.Where("name = ? AND password = ?", username, password).First(&user)
@@ -55,33 +55,21 @@ func SelectIDByUsernameAndPassword(username string, password string) (bool, uint
 	}
 }
 
-// 查找是否拥有token为s的用户
-func HasExistUserByToken(s string) bool {
-	var user User
-	DB.Where("token = ?", s).First(&user)
-	return user.ID > 0
-}
-
-// 根据用户ID查找用户
-func SelectUserByID(id uint) User {
-	var user User
-	DB.Where("id = ?", id).First(&user)
-	return user
-}
-
-// 根据用户ID查找用户名
+// SelectUsernameByID 根据用户ID查找用户名
 func SelectUsernameByID(id uint) string {
 	var user User
 	DB.Where("id = ?", id).First(&user)
 	return user.Name
 }
 
+// SelectFollowCountByID 根据用户ID查找用户关注数量
 func SelectFollowCountByID(id uint) uint {
 	var user User
 	DB.Where("id = ?", id).First(&user)
 	return user.FollowCount
 }
 
+// SelectFollowerCountByID 根据用户ID查找用户粉丝数量
 func SelectFollowerCountByID(id uint) uint {
 	var user User
 	DB.Where("id = ?", id).First(&user)
