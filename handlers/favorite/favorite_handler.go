@@ -20,7 +20,7 @@ func Favorite(c *gin.Context) {
 	actionTypeStr := c.Query("action_type")
 	actionType, _ := strconv.ParseInt(actionTypeStr, 10, 64)
 
-	err := services.FavoriteAction(int64(userId), videoId, actionType)
+	err := services.FavoriteSrv.FavoriteAction(int64(userId), videoId, actionType)
 
 	if err != nil {
 
@@ -40,7 +40,7 @@ func FavoriteList(c *gin.Context) {
 	token := c.Query("token")
 	userId := utils.GetUserIDFromToken(token) //访问者的userID
 
-	res, err := services.FindAllFavorite(int64(userId))
+	res, err := services.FavoriteSrv.FindAllFavorite(int64(userId))
 
 	//msg := "success"
 	if err != nil {
