@@ -29,3 +29,8 @@ redis:
   password:
   DB: 0
 
+limit_ip:
+  # IP限制次数 2分钟240次
+  iplimit-count: 240
+  #  IP限制2分钟
+  iplimit-time: 120

@@ -13,11 +13,12 @@ var (
 )
 
 type ServerConfig struct {
-	Name         string      `mapstructure:"name"`
-	Port         int         `mapstructure:"port"`
-	MysqlConfigs MysqlConfig `mapstructure:"mysql"`
-	RedisConfigs RedisConfig `mapstructure:"redis"`
-	LogsAddress  string      `mapstructure:"logsAddress"`
+	Name           string        `mapstructure:"name"`
+	Port           int           `mapstructure:"port"`
+	MysqlConfigs   MysqlConfig   `mapstructure:"mysql"`
+	RedisConfigs   RedisConfig   `mapstructure:"redis"`
+	LogsAddress    string        `mapstructure:"logsAddress"`
+	LimitIpConfigs LimitIpConfig `mapstructure:"limit_ip"`
 }
 
 type MysqlConfig struct {
@@ -32,6 +33,11 @@ type RedisConfig struct {
 	Addr     string `mapstructure:"addr"`
 	Password string `mapstructure:"password"`
 	DB       int    `mapstructure:"DB"`
+}
+
+type LimitIpConfig struct {
+	LimitCountIP int `mapstructure:"iplimit-count" json:"iplimit-count" yaml:"iplimit-count"`
+	LimitTimeIP  int `mapstructure:"iplimit-time" json:"iplimit-time" yaml:"iplimit-time"`
 }
 
 func InitConfig() {
