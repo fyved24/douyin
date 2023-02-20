@@ -9,7 +9,6 @@ require (
 	github.com/fatih/color v1.14.1
 	github.com/gin-contrib/pprof v1.4.0
 	github.com/gin-gonic/gin v1.8.2
-	github.com/go-redis/redis/v8 v8.11.5
 	github.com/golang-jwt/jwt/v4 v4.5.0
 	github.com/hashicorp/go-uuid v1.0.3
 	github.com/redis/go-redis/v9 v9.0.2

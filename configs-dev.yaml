@@ -23,14 +23,25 @@ logsAddress: "./logs/"
 #  port: 3306
 #  password: "XXXXXXXX"
 #  dbName: "test"
-
 redis:
-  addr: "127.0.0.1:6379"
-  password:
-  DB: 0
+  addr: "47.93.10.203:6379"
+  password: "zkrt"
+  DB: 2
 
 limit_ip:
   # IP限制次数 2分钟240次
   iplimit-count: 240
   #  IP限制2分钟
   iplimit-time: 120
+
+# timer task db
+Timer:
+  start: true
+  spec: "@daily" # 定时任务详细配置参考 https://pkg.go.dev/github.com/robfig/cron/v3
+  detail:
+    - tableName: sys_operation_records
+      compareField: created_at
+      interval: 2160h
+    - tableName: jwt_blacklists
+      compareField: created_at
+      interval: 168h
