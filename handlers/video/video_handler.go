@@ -11,7 +11,7 @@ import (
 func FeedVideoList(c *gin.Context) {
 
 	req := requests.NewDouyinFeedRequest(c)
-	feedVideosRes, _ := video.FeedVideoList(req.LatestTime)
+	feedVideosRes, _ := video.FeedVideoList(req.LatestTime, req.UserID)
 	c.JSON(http.StatusOK, feedVideosRes)
 }
 
