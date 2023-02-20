@@ -57,7 +57,7 @@ func cacheInit() {
 // 没有引入cache获得视频的所有评论并且用连接表的方式获得用户的信息
 func getVideoComments(videoID uint, limit, offset int, logined bool, userID uint) (res []responses.Comment, err error) {
 	// 根据视频ID得到评论和评论发布者的一些基本用户信息
-	cms, err := models.QueryCommentsByVideoID(videoID, offset, limit)
+	cms, err := models.FindCommentsByVideoID(videoID, offset, limit)
 	if err != nil {
 		logrus.Error(err)
 		err = ErrCommentFetchFailed
@@ -69,7 +69,7 @@ func getVideoComments(videoID uint, limit, offset int, logined bool, userID uint
 	var userFollowed = map[uint]struct{}{}
 	if logined {
 		// 如果浏览评论的是已登录的用户需要得到它关注的用户
-		followedUsers, err := models.QueryFollowedUsersByUserID(userID)
+		followedUsers, err := models.FindFollowedUsersByUserID(userID)
 		if err != nil {
 			logrus.Error(err)
 			err = ErrFollowingFetchFailed
@@ -86,6 +86,15 @@ func getVideoComments(videoID uint, limit, offset int, logined bool, userID uint
 		res[idx].User.Name = cm.Name
 		res[idx].User.FollowCount = int64(cm.FollowCount)
 		res[idx].User.FollowerCount = int64(cm.FollowerCount)
+
+		// 新添加的用户信息内容
+		res[idx].User.Avatar = cm.Avatar
+		res[idx].User.BackgroundImage = cm.BackgroundImage
+		res[idx].User.FavoriteCount = int64(cm.FavoriteCount)
+		res[idx].User.Signature = cm.Signature
+		res[idx].User.TotalFavorited = int64(cm.TotalFavorited)
+		res[idx].User.WorkCount = int64(cm.WorkCount)
+
 		res[idx].Content = cm.Content
 		// 根据评论创建时间生成评论创建日期字符串
 		res[idx].CreateDate = cm.PublishDate.Format(CREATE_DATE_FMT)
@@ -94,6 +103,28 @@ func getVideoComments(videoID uint, limit, offset int, logined bool, userID uint
 			_, following := userFollowed[cm.UserID]
 			res[idx].User.IsFollow = following
 		}
+	}
+	return
+}
+
+func getVideoCommentsWithoutUserInfo(videoID uint, limit, offset int) (res []responses.Comment, err error) {
+	// 根据视频ID得到评论
+	cms, err := models.FindCommentsByVideoIDWithoutUserInfo(videoID, offset, limit)
+	if err != nil {
+		logrus.Error(err)
+		err = ErrCommentFetchFailed
+		return
+	}
+	if len(cms) == 0 {
+		return
+	}
+	res = make([]responses.Comment, len(cms))
+	for idx, cm := range cms {
+		res[idx].ID = int64(cm.ID)
+		res[idx].User.ID = int64(cm.UserID)
+		res[idx].Content = cm.Content
+		// 根据评论创建时间生成评论创建日期字符串
+		res[idx].CreateDate = cm.PublishDate.Format(CREATE_DATE_FMT)
 	}
 	return
 }
@@ -157,10 +188,36 @@ func BrowserLogined(tokenString *string) (logined bool, userID uint, err error) 
 
 // 查询评论用户的基本信息
 func userBasicInfo(userID uint) (*models.LiteUser, error) {
-	res, err := models.QueryUserBasicInfo(userID)
+	res, err := models.FindUserInfoByID(userID)
 	if err != nil {
 		return nil, err
 	}
+	return res, err
+}
+
+func userBasicInfoWithCache(userID uint) (*models.LiteUser, error) {
+	cacheInitOnce.Do(cacheInit)
+	// 如果缓存中有用户信息直接取出使用
+	localCacheLock.Lock()
+	key := genCacheKey(USER_INFOS, userID)
+	userInfoObj, _ := localCache.Get(key)
+	userInfo, ok := userInfoObj.(models.LiteUser)
+	if ok {
+		defer localCacheLock.Unlock()
+		cp := userInfo
+		return &cp, nil
+	}
+	localCacheLock.Unlock()
+	// 缓存未命中时从数据库读取用户信息
+	res, err := userBasicInfo(userID)
+	if err != nil {
+		return nil, err
+	}
+	// 存入缓存
+	localCacheLock.Lock()
+	defer localCacheLock.Unlock()
+	cp := *res
+	localCache.Set(key, cp, 1)
 	return res, err
 }
 
@@ -184,7 +241,8 @@ func addVideoComment(videoID, userID uint, content string) (*responses.Comment, 
 		return nil, err
 	}
 	// 发表评论用户的基本信息
-	usrInfo, err := userBasicInfo(userID)
+	// usrInfo, err := userBasicInfo(userID)
+	usrInfo, err := userBasicInfoWithCache(userID)
 	if err != nil {
 		logrus.Error(err)
 		err = ErrUserFetchFailed
@@ -192,16 +250,12 @@ func addVideoComment(videoID, userID uint, content string) (*responses.Comment, 
 	}
 	// 返回信息
 	var res = responses.Comment{
-		ID: int64(mr.ID),
-		User: responses.User{
-			ID:            int64(userID),
-			Name:          usrInfo.Name,
-			FollowCount:   int64(usrInfo.FollowCount),
-			FollowerCount: int64(usrInfo.FollowerCount),
-		},
+		ID:         int64(mr.ID),
 		Content:    mr.Content,
+		User:       responses.User{ID: int64(mr.UserID)},
 		CreateDate: mr.PublishDate.Format(CREATE_DATE_FMT),
 	}
+	fillACommentUserInfo(&res, *usrInfo)
 	return &res, nil
 }
 
@@ -242,7 +296,7 @@ func DeleteComment(commentID, userID, videoID uint) error {
 var ErrFindVideoFailed = errors.New("find video failed")
 
 func videoExist(videoID uint) (bool, error) {
-	_, err := models.QueryVideoCommentCount(videoID)
+	_, err := models.FindVideoCommentCountByID(videoID)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return false, nil
@@ -255,12 +309,41 @@ func videoExist(videoID uint) (bool, error) {
 }
 
 func videoExistWithCache(videoID uint) (bool, error) {
+	// 可能的缓存初始化
+	cacheInitOnce.Do(cacheInit)
 	key := genCacheKey(VIDEO_COMMENTS, videoID)
-	_, hit := localCache.Get(key)
+	// 从本地缓存中读取出键对应的值
+	valObj, hit := localCache.Get(key)
 	if hit {
+		// 如果存的确实是评论列表,认为视频是存在的
+		// 否则认为是标识非法视频的标识
+		switch val := valObj.(type) {
+		case []responses.Comment:
+			return true, nil
+		case bool:
+			return val, nil
+		default:
+			// 这里加入位置类型的报错可能比较好
+			return false, nil
+		}
+	}
+	// 本地缓存中没有视频的情况下,向数据库查找是否存在相应视频
+	exist, err := videoExist(videoID)
+	if err != nil {
+		return false, err
+	}
+	// 加锁是为了防止复制产生破坏性效果
+	localCacheLock.Lock()
+	defer localCacheLock.Unlock()
+	if !exist {
+		// 如果数据库中不存在视频那么需要一个标识来表示其为不合法的视频ID
+		localCache.SetWithTTL(key, false, 1, time.Second*time.Duration(rand.Intn(CACHE_TTL_RAND_SECONDS)+1))
+		return false, nil
+	} else {
+		// 这种设置一般不会出现,因为对视频操作之前一般都会先访问该视频的评论列表
+		localCache.Set(key, true, 1)
 		return true, nil
 	}
-	return videoExist(videoID)
 }
 
 // 检查要操作或查询的视频是否存在
@@ -269,7 +352,10 @@ func VideoExist(videoID uint) (bool, error) {
 	return videoExistWithCache(videoID)
 }
 
-const BASE_CACHE_TTL_MINUTES = 5
+const (
+	BASE_CACHE_TTL_MINUTES = 5
+	CACHE_TTL_RAND_SECONDS = 60
+)
 
 // 带缓存的评论读取
 func getVideoCommentsWithCache(videoID, userID uint, logined bool) (res []responses.Comment, err error) {
@@ -278,7 +364,7 @@ func getVideoCommentsWithCache(videoID, userID uint, logined bool) (res []respon
 	// 本地缓存操作
 	localCacheLock.Lock()
 	// 查询缓存
-	cachedObj, ok := localCache.Get(videoID)
+	cachedObj, _ := localCache.Get(videoID)
 	cachedComments, ok := cachedObj.([]responses.Comment)
 	if !ok {
 		// 如果缓存中没有，访问数据库得到
@@ -301,7 +387,7 @@ func getVideoCommentsWithCache(videoID, userID uint, logined bool) (res []respon
 	}
 	var userFollowed = map[uint]struct{}{}
 	// 如果浏览评论的是已登录的用户需要得到它关注的用户
-	followedUsers, err := models.QueryFollowedUsersByUserID(userID)
+	followedUsers, err := models.FindFollowedUsersByUserID(userID)
 	if err != nil {
 		logrus.Error(err)
 		err = ErrFollowingFetchFailed
@@ -328,7 +414,7 @@ func deldeteCommentWithCache(commentID, userID, videoID uint) error {
 	cacheInitOnce.Do(cacheInit)
 	localCacheLock.Lock()
 	defer localCacheLock.Unlock()
-	cachedObj, ok := localCache.Get(videoID)
+	cachedObj, _ := localCache.Get(videoID)
 	cachedComments, ok := cachedObj.([]responses.Comment)
 	// 没有缓存则不用更新缓存
 	if !ok {
@@ -364,7 +450,7 @@ func addVideoCommentWithCache(videoID, userID uint, content string) (*responses.
 	cacheInitOnce.Do(cacheInit)
 	localCacheLock.Lock()
 	defer localCacheLock.Unlock()
-	cachedObj, ok := localCache.Get(videoID)
+	cachedObj, _ := localCache.Get(videoID)
 	cachedComments, ok := cachedObj.([]responses.Comment)
 	// 如果没有缓存不用操作
 	if !ok {
@@ -399,6 +485,7 @@ const (
 	VIDEO_COMMENTS = "vc:"
 	USER_INFOS     = "ui:"
 	USER_FOLLOWS   = "uf:"
+	VIDEO_AUTHOR   = "va:"
 )
 
 // 用来生成本地缓存的key
@@ -410,8 +497,8 @@ func getUserFollowsWithCache(userID uint) (map[uint]struct{}, error) {
 	var userFollowed, userFollowedCopy map[uint]struct{}
 	key := genCacheKey(USER_FOLLOWS, userID)
 	localCacheLock.Lock()
-	userFollowedObj, ok := localCache.Get(key)
-	userFollowed, ok = userFollowedObj.(map[uint]struct{})
+	userFollowedObj, _ := localCache.Get(key)
+	userFollowed, ok := userFollowedObj.(map[uint]struct{})
 	// 如果在本地缓存中查找到了用户的关注关系那复制一份出来
 	if ok {
 		userFollowedCopy = make(map[uint]struct{}, len(userFollowed))
@@ -422,7 +509,7 @@ func getUserFollowsWithCache(userID uint) (map[uint]struct{}, error) {
 	localCacheLock.Unlock()
 	// 如果本地缓存中没有找到该用户的关注关系,从数据库中请求到相应数据放到缓存中
 	if !ok {
-		followedUsers, err := models.QueryFollowedUsersByUserID(userID)
+		followedUsers, err := models.FindFollowedUsersByUserID(userID)
 		if err != nil {
 			logrus.Error(err)
 			err = ErrFollowingFetchFailed
@@ -443,25 +530,13 @@ func getUserFollowsWithCache(userID uint) (map[uint]struct{}, error) {
 func getVideoCommentsRemoteAndFillCache(videoID uint) (res []responses.Comment, err error) {
 	// 这里先不处理登录用户的关注关系
 	// 因为我想缓存用户的关注关系
-	res, err = getVideoComments(videoID, -1, -1, false, 0)
+	// TODO: 加入赋值锁
+	res, err = getVideoCommentsWithoutUserInfo(videoID, -1, -1)
 	if err != nil {
 		return nil, err
 	}
 	videoCacheKey := genCacheKey(VIDEO_COMMENTS, videoID)
 	localCacheLock.Lock()
-	// 将数据库更新后的用户数据单独缓存
-	for _, ele := range res {
-		// 只缓存有效用户
-		if ele.ID > 0 && ele.User.ID > 0 {
-			localCache.Set(genCacheKey(USER_INFOS, uint(ele.User.ID)),
-				models.LiteUser{
-					Name:          ele.User.Name,
-					FollowCount:   uint(ele.User.FollowCount),
-					FollowerCount: uint(ele.User.FollowerCount),
-				},
-				1)
-		}
-	}
 	// 缓存评论区
 	resCopy := make([]responses.Comment, len(res))
 	copy(resCopy, res)
@@ -470,24 +545,38 @@ func getVideoCommentsRemoteAndFillCache(videoID uint) (res []responses.Comment, 
 	return res, nil
 }
 
+func fillACommentUserInfo(needFill *responses.Comment, userInfo models.LiteUser) {
+	needFill.User.FollowCount = int64(userInfo.FollowCount)
+	needFill.User.FollowerCount = int64(userInfo.FollowerCount)
+	needFill.User.Name = userInfo.Name
+	needFill.User.Avatar = userInfo.Avatar
+	needFill.User.BackgroundImage = userInfo.BackgroundImage
+	needFill.User.Signature = userInfo.Signature
+	needFill.User.FavoriteCount = int64(userInfo.FavoriteCount)
+	needFill.User.TotalFavorited = int64(userInfo.TotalFavorited)
+	needFill.User.WorkCount = int64(userInfo.WorkCount)
+}
+
 func fillCommentUsersInfoWithCache(needFill []responses.Comment) error {
 	var needQuery []uint // 我们假定这种需要二次查找用户信息的情况不常见
 	var needRefill []int
 	localCacheLock.Lock()
+	// 为每条评论填充评论用户的信息
 	for idx := range needFill {
 		userInfoObj, _ := localCache.Get(genCacheKey(USER_INFOS, uint(needFill[idx].User.ID)))
 		userInfo, ok := userInfoObj.(models.LiteUser)
 		if !ok {
+			// 如果在本地缓存中没找到相应用户信息,记录要查找的用户信息
 			needRefill = append(needRefill, idx)
 			needQuery = append(needQuery, uint(needFill[idx].User.ID))
 		} else {
-			needFill[idx].User.FollowCount = int64(userInfo.FollowCount)
-			needFill[idx].User.FollowerCount = int64(userInfo.FollowerCount)
+			// 如果在存储中找到了对应用户的信息,直接赋值即可
+			fillACommentUserInfo(&needFill[idx], userInfo)
 		}
 	}
 	localCacheLock.Unlock()
 	if needQuery != nil {
-		res, err := models.QueryUsersInfo(needQuery)
+		res, err := models.FindUsersInfoByIDs(needQuery)
 		if err != nil {
 			logrus.Error(err)
 			err = ErrUserFetchFailed
@@ -505,8 +594,7 @@ func fillCommentUsersInfoWithCache(needFill []responses.Comment) error {
 			if !ok {
 				return ErrUserFetchFailed
 			}
-			needFill[idx].User.FollowCount = int64(userInfo.FollowCount)
-			needFill[idx].User.FollowerCount = int64(userInfo.FollowerCount)
+			fillACommentUserInfo(&needFill[idx], userInfo)
 		}
 	}
 	return nil
@@ -518,12 +606,20 @@ func getVideoCommentsWithSeperateCache(videoID, userID uint, logined bool) (res 
 	// 本地缓存操作
 	localCacheLock.Lock()
 	// 查询缓存
-	cachedObj, hit := localCache.Get(genCacheKey(VIDEO_COMMENTS, videoID))
+	cachedObj, _ := localCache.Get(genCacheKey(VIDEO_COMMENTS, videoID))
 	cachedComments, hit := cachedObj.([]responses.Comment)
 	if !hit {
 		// 如果缓存中没有，访问数据库得到
 		localCacheLock.Unlock()
+		// 从数据库读取评论并加载到本地缓存
 		res, err = getVideoCommentsRemoteAndFillCache(videoID)
+		if err != nil {
+			return nil, err
+		}
+		// 填充所有评论的用户的信息
+		if err = fillCommentUsersInfoWithCache(res); err != nil {
+			return nil, err
+		}
 		// 这里也不返回结果了接下来要继续处理用户登录的情况
 	} else {
 		res = make([]responses.Comment, len(cachedComments))
@@ -561,7 +657,7 @@ func deldeteCommentWithSeperateCache(commentID, userID, videoID uint) error {
 	defer localCacheLock.Unlock()
 	// 与之前的带缓存删除之间只差一个查询key不同
 	key := genCacheKey(VIDEO_COMMENTS, videoID)
-	cachedObj, ok := localCache.Get(key)
+	cachedObj, _ := localCache.Get(key)
 	cachedComments, ok := cachedObj.([]responses.Comment)
 	// 没有缓存则不用更新缓存
 	if !ok {
@@ -599,7 +695,7 @@ func addVideoCommentWithSeperateCache(videoID, userID uint, content string) (*re
 	defer localCacheLock.Unlock()
 	// 与之前的带缓存添加之间只差一个查询key不同
 	key := genCacheKey(VIDEO_COMMENTS, videoID)
-	cachedObj, ok := localCache.Get(key)
+	cachedObj, _ := localCache.Get(key)
 	cachedComments, ok := cachedObj.([]responses.Comment)
 	// 如果没有缓存不用操作
 	if !ok {
@@ -631,6 +727,7 @@ const (
 
 // 用户的关注状态变化时将本地缓存的关注状态更新
 func ChangeFollowCacheStates(hostId, guestId uint, actionType FollowActionEnm) {
+	cacheInitOnce.Do(cacheInit)
 	// host (un)following guest
 	// host is (not) a guest's follower
 	localCacheLock.Lock()
@@ -678,5 +775,79 @@ func ChangeFollowCacheStates(hostId, guestId uint, actionType FollowActionEnm) {
 			// 缓存回存
 			localCache.Set(guestUIKey, userInfo, 1)
 		}
+	}
+}
+
+type FavoriteActionEnm int
+
+const (
+	FAVORITE_ACTION_FAVORITE FavoriteActionEnm = 1 + iota
+	FAVORITE_ACTION_UNFAVORITE
+)
+
+func ChangeUserCacheFavoriteState(userID, videoID uint, actionType FavoriteActionEnm) {
+	cacheInitOnce.Do(cacheInit)
+	userKey := genCacheKey(USER_INFOS, userID)
+	// 先给用户修改喜欢数量
+	localCacheLock.Lock()
+	userInfoObj, _ := localCache.Get(userKey)
+	userInfo, ok := userInfoObj.(models.LiteUser)
+	if ok {
+		switch actionType {
+		case FAVORITE_ACTION_FAVORITE:
+			userInfo.FavoriteCount++
+		case FAVORITE_ACTION_UNFAVORITE:
+			userInfo.FavoriteCount--
+		}
+		localCache.Set(userKey, userInfo, 1)
+	}
+	localCacheLock.Unlock()
+	// 再给视频作者更新被赞数
+	// 但是首先要读取到视频的作者
+	vaKey := genCacheKey(VIDEO_AUTHOR, videoID)
+	localCacheLock.Lock()
+	authorIDObj, _ := localCache.Get(vaKey)
+	authorID, ok := authorIDObj.(uint)
+	localCacheLock.Unlock()
+	if !ok {
+		var err error
+		// 如果缓存中没有保存视频的作者是谁需要先从数据库中找到视频作者
+		authorID, err = models.FindVideoAuthorByVideoID(videoID)
+		if err != nil {
+			// 这一步一般来说不应该出错,但是如果出错了可以直接返回,牺牲一致性保证服务
+			logrus.Error(err)
+			return
+		}
+		localCacheLock.Lock()
+		defer localCacheLock.Unlock()
+		// 缓存视频作者
+		localCache.Set(vaKey, authorID, 1)
+	}
+	// 缓存中缓存了视频作者,那么直接更新作者的信息即可
+	authorKey := genCacheKey(USER_INFOS, authorID)
+	authorInfoObj, _ := localCache.Get(authorKey)
+	authorInfo, inCache := authorInfoObj.(models.LiteUser)
+	if inCache {
+		switch actionType {
+		case FAVORITE_ACTION_FAVORITE:
+			authorInfo.TotalFavorited++
+		case FAVORITE_ACTION_UNFAVORITE:
+			authorInfo.TotalFavorited--
+		}
+		localCache.Set(authorKey, authorInfo, 1)
+	}
+
+}
+
+func ChangeUserCacheWorkCount(userID uint) {
+	cacheInitOnce.Do(cacheInit)
+	localCacheLock.Lock()
+	defer localCacheLock.Unlock()
+	key := genCacheKey(USER_INFOS, userID)
+	userInfoObj, _ := localCache.Get(key)
+	userInfo, ok := userInfoObj.(models.LiteUser)
+	if ok {
+		userInfo.WorkCount++
+		localCache.Set(key, userInfo, 1)
 	}
 }

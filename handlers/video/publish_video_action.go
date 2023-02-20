@@ -1,15 +1,17 @@
 package video
 
 import (
-	"github.com/fyved24/douyin/models"
-	"github.com/fyved24/douyin/requests"
-	"github.com/fyved24/douyin/responses"
-	videoService "github.com/fyved24/douyin/services/video"
-	"github.com/fyved24/douyin/utils"
-	"github.com/gin-gonic/gin"
 	"log"
 	"net/http"
 	"path/filepath"
+
+	"github.com/fyved24/douyin/models"
+	"github.com/fyved24/douyin/requests"
+	"github.com/fyved24/douyin/responses"
+	"github.com/fyved24/douyin/services/comment"
+	videoService "github.com/fyved24/douyin/services/video"
+	"github.com/fyved24/douyin/utils"
+	"github.com/gin-gonic/gin"
 )
 
 var (
@@ -49,4 +51,6 @@ func PublishVideoAction(c *gin.Context) {
 	}
 	publishVideosRes, _ := videoService.SavePublishVideo(video)
 	c.JSON(http.StatusOK, publishVideosRes)
+	// 发布视频成功时更新本地缓存中用户信息的作品数
+	comment.ChangeUserCacheWorkCount(req.UserID)
 }

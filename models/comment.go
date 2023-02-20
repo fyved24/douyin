@@ -16,9 +16,15 @@ type Comment struct {
 
 // 读出少量用户数据用的
 type LiteUser struct {
-	Name          string
-	FollowCount   uint
-	FollowerCount uint
+	Name            string // 用户名称
+	FollowCount     uint   // 关注总数
+	FollowerCount   uint   // 粉丝总数
+	Avatar          string // 用户头像
+	BackgroundImage string // 用户个人页顶部大图
+	FavoriteCount   uint   // 喜欢数
+	Signature       string // 个人简介
+	TotalFavorited  uint   // 获赞数量
+	WorkCount       uint   // 作品数
 }
 
 // 将评论数据加上用户数据
@@ -33,10 +39,19 @@ type LiteComment struct {
 // 返回相应视频ID的相应分页的所用评论行，以行的创建时间降序排列
 // 感觉这种读取对事务性的要求不高，如果创建连接禁用默认事务可能会好点
 // 现在还不知道到底是只查询评论,再去请求获得用户信息还是现在这样直接连接表得到大部分结果
-func QueryCommentsByVideoID(videoID uint, offset, limit int) (res []LiteComment, err error) {
+func FindCommentsByVideoID(videoID uint, offset, limit int) (res []LiteComment, err error) {
 	err = DB.Model(&Comment{}).
 		Select("comments.id, comments.user_id, users.name, users.follow_count, users.follower_count, comments.content, comments.publish_date").
 		Joins("left join users on comments.user_id = users.id").
+		Where("comments.video_id = ?", videoID).
+		Order("comments.publish_date DESC").Limit(limit).Offset(offset).Find(&res).Error
+	return
+}
+
+// 去掉表join获得user信息,改为单独获取comment信息之后再搜索用户信息
+func FindCommentsByVideoIDWithoutUserInfo(videoID uint, offset, limit int) (res []LiteComment, err error) {
+	err = DB.Model(&Comment{}).
+		Select("comments.id, comments.user_id, comments.content, comments.publish_date").
 		Where("comments.video_id = ?", videoID).
 		Order("comments.publish_date DESC").Limit(limit).Offset(offset).Find(&res).Error
 	return
@@ -58,7 +73,7 @@ func DeleteComment(commentID, userID, videoID uint) (err error) {
 }
 
 // 获得用户的基本信息
-func QueryUserBasicInfo(userID uint) (res *LiteUser, err error) {
+func FindUserInfoByID(userID uint) (res *LiteUser, err error) {
 	res = &LiteUser{}
 	err = DB.Model(&User{}).Where("id = ?", userID).First(res).Error
 	return
@@ -73,13 +88,13 @@ func IncreaseVideoCommentCount(videoID uint, adder int) (err error) {
 }
 
 // 给出userID用户所关注的所有用户的ID
-func QueryFollowedUsersByUserID(userID uint) (res []uint, err error) {
+func FindFollowedUsersByUserID(userID uint) (res []uint, err error) {
 	err = DB.Model(&Following{}).Select("follow_id").Where("host_id = ?", userID).Find(&res).Error
 	return
 }
 
 // 读取视频评论数的同时检查视频是否存在
-func QueryVideoCommentCount(videoID uint) (res uint, err error) {
+func FindVideoCommentCountByID(videoID uint) (res uint, err error) {
 	err = DB.Model(&Video{}).Where("id = ?", videoID).Select("comment_count").Take(&res).Error
 	return
 }
@@ -89,8 +104,14 @@ type LiteUserWithID struct {
 	LiteUser
 }
 
-func QueryUsersInfo(userID []uint) ([]LiteUserWithID, error) {
+func FindUsersInfoByIDs(userID []uint) ([]LiteUserWithID, error) {
 	var res []LiteUserWithID
-	err := DB.Model(&User{}).Select("id, name, follow_count, follower_count").Where("id in (?)", userID).Scan(&res).Error
+	err := DB.Model(&User{}). // Select("id, name, follow_count, follower_count").
+					Where("id in (?)", userID).Scan(&res).Error
 	return res, err
+}
+
+func FindVideoAuthorByVideoID(videoID uint) (res uint, err error) {
+	err = DB.Model(&Video{}).Select("author_id").Where("id = ?", videoID).Scan(&res).Error
+	return
 }

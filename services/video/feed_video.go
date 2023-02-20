@@ -7,8 +7,8 @@ import (
 	"time"
 )
 
-func FeedVideoList(latestTime time.Time) (*responses.DouyinFeedResponse, error) {
-	videos, err := models.QueryFeedVideoListByLatestTime(30, latestTime)
+func FeedVideoList(latestTime time.Time, userID uint) (*responses.DouyinFeedResponse, error) {
+	videos, err := models.QueryFeedVideoListByLatestTime(30, latestTime, userID)
 	nextTime := time.Now().UnixNano() / 1e6
 	if len(*videos) > 0 {
 		nextTime = (*videos)[0].CreatedAt.UnixNano() / 1e6
