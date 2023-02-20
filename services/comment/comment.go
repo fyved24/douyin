@@ -13,6 +13,7 @@ import (
 	"github.com/fyved24/douyin/models"
 	"github.com/fyved24/douyin/responses"
 	"github.com/golang-jwt/jwt/v4"
+	"github.com/hashicorp/go-uuid"
 	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
 )
@@ -486,6 +487,7 @@ const (
 	USER_INFOS     = "ui:"
 	USER_FOLLOWS   = "uf:"
 	VIDEO_AUTHOR   = "va:"
+	COMMENT_LOCK   = "cl:"
 )
 
 // 用来生成本地缓存的key
@@ -528,14 +530,44 @@ func getUserFollowsWithCache(userID uint) (map[uint]struct{}, error) {
 	return userFollowedCopy, nil
 }
 func getVideoCommentsRemoteAndFillCache(videoID uint) (res []responses.Comment, err error) {
+	videoCacheKey := genCacheKey(VIDEO_COMMENTS, videoID)
 	// 这里先不处理登录用户的关注关系
 	// 因为我想缓存用户的关注关系
-	// TODO: 加入赋值锁
+	// 尝试获取相应视频的评论缓存赋值锁
+	lockID, locked, err := commentCacheInitLock(videoID)
+	if err != nil {
+		logrus.Error(err)
+	}
+	if !locked {
+		// 如果已经被他人占用锁那么等待一段时间
+		<-time.After(time.Millisecond * LOCK_POSSESS_DURATION_MILISEC)
+		// 如果等待后缓存已经被设置,直接将缓存返回即可
+		localCacheLock.Lock()
+		defer localCacheLock.Unlock()
+		cacheValObj, _ := localCache.Get(videoCacheKey)
+		cacheVal, ok := cacheValObj.([]responses.Comment)
+		if !ok {
+			// 如果等待了也没有获得本地缓存中的数据
+			// 认为可能有什么问题先返回这次请求
+			return nil, ErrCommentFetchFailed
+		}
+		res = make([]responses.Comment, len(cacheVal))
+		copy(res, cacheVal)
+		return res, nil
+	}
+	// 如果是自己占有了本地缓存赋值锁,那么就需要在过程结束后释放锁
+	defer func() {
+		UnlockErr := commentCacheInitUnlock(videoID, lockID)
+		if err != nil {
+			logrus.Error(UnlockErr)
+		}
+	}()
+	// 接下来是自己占用锁时的进行数据库访问和本地缓存赋值的过程
 	res, err = getVideoCommentsWithoutUserInfo(videoID, -1, -1)
 	if err != nil {
 		return nil, err
 	}
-	videoCacheKey := genCacheKey(VIDEO_COMMENTS, videoID)
+
 	localCacheLock.Lock()
 	// 缓存评论区
 	resCopy := make([]responses.Comment, len(res))
@@ -850,4 +882,54 @@ func ChangeUserCacheWorkCount(userID uint) {
 		userInfo.WorkCount++
 		localCache.Set(key, userInfo, 1)
 	}
+}
+
+var ErrCommentCacheInitFailed = errors.New("comment cache init lock failed")
+
+const (
+	LOCK_POSSESS_DURATION_MILISEC = 50 // 最多占有锁50毫秒
+)
+
+// 只在评论列表的缓存初始化上加锁一个原因是,只有这个操作的数据量理论上是最大的
+func commentCacheInitLock(videoID uint) (keyID string, lockPossessed bool, err error) {
+	cacheInitOnce.Do(cacheInit)
+	key := genCacheKey(COMMENT_LOCK, videoID)
+	localCacheLock.Lock()
+	defer localCacheLock.Unlock()
+	// 生成一个标识,来标识当前处理的内容
+	keyID, err = uuid.GenerateUUID()
+	if err != nil {
+		logrus.Error(err)
+		err = ErrCommentCacheInitFailed
+		return "", false, err
+	}
+	// 如果已经有线程占有了锁,那么就不能再获取锁了
+	_, ok := localCache.Get(key)
+	if ok {
+		return "", false, nil
+	}
+	// 否则自己申请占有锁并给出占有时间
+	localCache.SetWithTTL(key, keyID, 1, time.Millisecond*LOCK_POSSESS_DURATION_MILISEC)
+	return keyID, true, nil
+}
+
+func commentCacheInitUnlock(videoID uint, keyID string) error {
+	cacheInitOnce.Do(cacheInit)
+	key := genCacheKey(COMMENT_LOCK, videoID)
+	localCacheLock.Lock()
+	defer localCacheLock.Unlock()
+	// 从缓存中读锁
+	valObj, ok := localCache.Get(key)
+	if !ok {
+		// 可能锁已经超时了
+		return nil
+	}
+	val, ok := valObj.(string)
+	if !ok || val != keyID {
+		// 可能锁被别人占有了
+		return nil
+	}
+	// 如果是自己占有的锁,就要释放锁
+	localCache.Del(key)
+	return nil
 }
