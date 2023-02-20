@@ -4,15 +4,16 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/fyved24/douyin/middleware"
 	"github.com/fyved24/douyin/models"
-	"github.com/go-redis/redis/v8"
+	"github.com/redis/go-redis/v9"
+
 	"log"
 )
 
 //获取聊天记录
 func GetChatLogWithCache(userID string, targetID string) (*[]models.Message, error) {
-	redisClient := middleware.NewRedisClient("47.93.10.203:6379", "zkrt", 2)
+	//redisClient := middleware.NewRedisClient("47.93.10.203:6379", "zkrt", 2)
+	redisClient := models.RedisDB
 	defer redisClient.Close()
 
 	//messages, err := models.GetMessageByID(userID, targetID)
@@ -36,7 +37,7 @@ func GetChatLogWithCache(userID string, targetID string) (*[]models.Message, err
 
 //发送消息存储
 func CreateMessage(userID string, targetID string, content string, actionType string) error {
-	redisClient := middleware.NewRedisClient("47.93.10.203:6379", "zkrt", 2)
+	redisClient := models.RedisDB
 	defer redisClient.Close()
 	m := &models.Message{
 		UserID:     userID,
