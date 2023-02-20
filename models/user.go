@@ -11,6 +11,7 @@ type User struct {
 	Avatar          string
 	BackgroundImage string
 	WorkCount       uint
+	Signature       string
 	Videos          []Video   `gorm:"foreignKey:AuthorID" json:"-"`
 	Comments        []Comment `json:"-"`
 }
