@@ -34,3 +34,15 @@ limit_ip:
   iplimit-count: 240
   #  IP限制2分钟
   iplimit-time: 120
+
+# timer task db
+Timer:
+  start: true
+  spec: "@daily" # 定时任务详细配置参考 https://pkg.go.dev/github.com/robfig/cron/v3
+  detail:
+    - tableName: sys_operation_records
+      compareField: created_at
+      interval: 2160h
+    - tableName: jwt_blacklists
+      compareField: created_at
+      interval: 168h

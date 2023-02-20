@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/fatih/color"
 	"github.com/spf13/viper"
+	"os"
 )
 
 var (
@@ -44,7 +45,9 @@ func InitConfig() {
 	// 实例化viper
 	v := viper.New()
 	//文件的路径如何设置
-	v.SetConfigFile("./configs-dev.yaml")
+
+	wd, _ := os.Getwd()
+	v.SetConfigFile(wd + "/configs-dev.yaml")
 	if err := v.ReadInConfig(); err != nil {
 		panic(err)
 	}
