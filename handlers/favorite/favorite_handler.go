@@ -1,11 +1,13 @@
 package favorite
 
 import (
+	"strconv"
+
 	"github.com/fyved24/douyin/handlers/user/utils"
 	"github.com/fyved24/douyin/responses"
 	"github.com/fyved24/douyin/services"
+	"github.com/fyved24/douyin/services/comment"
 	"github.com/gin-gonic/gin"
-	"strconv"
 )
 
 // Favorite 点赞视频方法
@@ -31,6 +33,8 @@ func Favorite(c *gin.Context) {
 		c.JSON(200, responses.FavoriteActionResponse{
 			0, "success",
 		})
+		// 成功进行了点赞操作后修改用户的本地缓存
+		comment.ChangeUserCacheFavoriteState(userId, uint(videoId), comment.FavoriteActionEnm(actionType))
 	}
 
 }

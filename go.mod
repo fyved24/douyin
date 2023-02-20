@@ -10,13 +10,13 @@ require (
 	github.com/gin-contrib/pprof v1.4.0
 	github.com/gin-gonic/gin v1.8.2
 	github.com/go-redis/redis/v8 v8.11.5
-	github.com/golang-jwt/jwt/v4 v4.4.3
+	github.com/golang-jwt/jwt/v4 v4.5.0
 	github.com/hashicorp/go-uuid v1.0.3
-	github.com/redis/go-redis/v9 v9.0.1
+	github.com/redis/go-redis/v9 v9.0.2
 	github.com/sirupsen/logrus v1.9.0
 	github.com/spf13/viper v1.15.0
 	github.com/stretchr/testify v1.8.1
-	gorm.io/driver/mysql v1.4.5
+	gorm.io/driver/mysql v1.4.7
 	gorm.io/gorm v1.24.3
 )
 
@@ -60,7 +60,7 @@ require (
 
 require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
-	github.com/gavv/httpexpect/v2 v2.11.0
+	github.com/gavv/httpexpect/v2 v2.12.0
 	github.com/gin-contrib/sse v0.1.0 // indirect
 	github.com/go-playground/locales v0.14.1 // indirect
 	github.com/go-playground/universal-translator v0.18.1 // indirect

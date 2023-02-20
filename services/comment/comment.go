@@ -485,6 +485,7 @@ const (
 	VIDEO_COMMENTS = "vc:"
 	USER_INFOS     = "ui:"
 	USER_FOLLOWS   = "uf:"
+	VIDEO_AUTHOR   = "va:"
 )
 
 // 用来生成本地缓存的key
@@ -775,4 +776,65 @@ func ChangeFollowCacheStates(hostId, guestId uint, actionType FollowActionEnm) {
 			localCache.Set(guestUIKey, userInfo, 1)
 		}
 	}
+}
+
+type FavoriteActionEnm int
+
+const (
+	FAVORITE_ACTION_FAVORITE FavoriteActionEnm = 1 + iota
+	FAVORITE_ACTION_UNFAVORITE
+)
+
+func ChangeUserCacheFavoriteState(userID, videoID uint, actionType FavoriteActionEnm) {
+	cacheInitOnce.Do(cacheInit)
+	userKey := genCacheKey(USER_INFOS, userID)
+	// 先给用户修改喜欢数量
+	localCacheLock.Lock()
+	userInfoObj, _ := localCache.Get(userKey)
+	userInfo, ok := userInfoObj.(models.LiteUser)
+	if ok {
+		switch actionType {
+		case FAVORITE_ACTION_FAVORITE:
+			userInfo.FavoriteCount++
+		case FAVORITE_ACTION_UNFAVORITE:
+			userInfo.FavoriteCount--
+		}
+		localCache.Set(userKey, userInfo, 1)
+	}
+	localCacheLock.Unlock()
+	// 再给视频作者更新被赞数
+	// 但是首先要读取到视频的作者
+	vaKey := genCacheKey(VIDEO_AUTHOR, videoID)
+	localCacheLock.Lock()
+	authorIDObj, _ := localCache.Get(vaKey)
+	authorID, ok := authorIDObj.(uint)
+	localCacheLock.Unlock()
+	if !ok {
+		var err error
+		// 如果缓存中没有保存视频的作者是谁需要先从数据库中找到视频作者
+		authorID, err = models.FindVideoAuthorByVideoID(videoID)
+		if err != nil {
+			// 这一步一般来说不应该出错,但是如果出错了可以直接返回,牺牲一致性保证服务
+			logrus.Error(err)
+			return
+		}
+		localCacheLock.Lock()
+		defer localCacheLock.Unlock()
+		// 缓存视频作者
+		localCache.Set(vaKey, authorID, 1)
+	}
+	// 缓存中缓存了视频作者,那么直接更新作者的信息即可
+	authorKey := genCacheKey(USER_INFOS, authorID)
+	authorInfoObj, _ := localCache.Get(authorKey)
+	authorInfo, inCache := authorInfoObj.(models.LiteUser)
+	if inCache {
+		switch actionType {
+		case FAVORITE_ACTION_FAVORITE:
+			authorInfo.TotalFavorited++
+		case FAVORITE_ACTION_UNFAVORITE:
+			authorInfo.TotalFavorited--
+		}
+		localCache.Set(authorKey, authorInfo, 1)
+	}
+
 }

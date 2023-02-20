@@ -110,3 +110,8 @@ func FindUsersInfoByIDs(userID []uint) ([]LiteUserWithID, error) {
 					Where("id in (?)", userID).Scan(&res).Error
 	return res, err
 }
+
+func FindVideoAuthorByVideoID(videoID uint) (res uint, err error) {
+	err = DB.Model(&Video{}).Select("author").Where("id = ?", videoID).Scan(&res).Error
+	return
+}
