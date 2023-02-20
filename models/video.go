@@ -21,9 +21,13 @@ type Video struct {
 func QueryFeedVideoListByLatestTime(limit int, latestTime time.Time, userID uint) (*[]Video, error) {
 	var videos []Video
 	err := DB.Model(&Video{}).Preload("Author").Where("created_at<?", latestTime).Limit(limit).Find(&videos).Error
+	if userID == 0 {
+		return &videos, err
+
+	}
 	for i := 0; i < len(videos); i++ {
 		var favorite Favorite
-		if DB.Model(&Favorite{}).Where("user_id = ? AND video_id = ?", userID, videos[i].ID).First(&favorite).Error != nil {
+		if DB.Model(&Favorite{}).Where("user_id = ? AND video_id = ?", userID, videos[i].ID).First(&favorite).Error == nil {
 			if favorite.UserID != 0 && favorite.Status == 1 {
 				videos[i].IsFavorite = true
 			}
@@ -55,7 +59,7 @@ func QueryUserVideoList(userID uint) (*[]Video, error) {
 	err := DB.Model(&Video{}).Where("author_id=?", userID).Find(&videos).Error
 	for i := 0; i < len(videos); i++ {
 		var favorite Favorite
-		if DB.Model(&Favorite{}).Where("user_id = ? AND video_id = ?", userID, videos[i].ID).First(&favorite).Error != nil {
+		if DB.Model(&Favorite{}).Where("user_id = ? AND video_id = ?", userID, videos[i].ID).First(&favorite).Error == nil {
 			if favorite.UserID != 0 && favorite.Status == 1 {
 				videos[i].IsFavorite = true
 			}
