@@ -838,3 +838,16 @@ func ChangeUserCacheFavoriteState(userID, videoID uint, actionType FavoriteActio
 	}
 
 }
+
+func ChangeUserCacheWorkCount(userID uint) {
+	cacheInitOnce.Do(cacheInit)
+	localCacheLock.Lock()
+	defer localCacheLock.Unlock()
+	key := genCacheKey(USER_INFOS, userID)
+	userInfoObj, _ := localCache.Get(key)
+	userInfo, ok := userInfoObj.(models.LiteUser)
+	if ok {
+		userInfo.WorkCount++
+		localCache.Set(key, userInfo, 1)
+	}
+}
