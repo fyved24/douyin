@@ -48,6 +48,15 @@ func FindCommentsByVideoID(videoID uint, offset, limit int) (res []LiteComment, 
 	return
 }
 
+// 去掉表join获得user信息,改为单独获取comment信息之后再搜索用户信息
+func FindCommentsByVideoIDWithoutUserInfo(videoID uint, offset, limit int) (res []LiteComment, err error) {
+	err = DB.Model(&Comment{}).
+		Select("comments.id, comments.user_id, comments.content, comments.publish_date").
+		Where("comments.video_id = ?", videoID).
+		Order("comments.publish_date DESC").Limit(limit).Offset(offset).Find(&res).Error
+	return
+}
+
 // 添加评论时应该已经有了发表评论的用户的信息了
 func AddComment(videoID, userID uint, commentText string, publishDate time.Time) (*Comment, error) {
 	comment := &Comment{VideoID: videoID, UserID: userID, Content: commentText, PublishDate: publishDate}
@@ -97,6 +106,7 @@ type LiteUserWithID struct {
 
 func FindUsersInfoByIDs(userID []uint) ([]LiteUserWithID, error) {
 	var res []LiteUserWithID
-	err := DB.Model(&User{}).Select("id, name, follow_count, follower_count").Where("id in (?)", userID).Scan(&res).Error
+	err := DB.Model(&User{}). // Select("id, name, follow_count, follower_count").
+					Where("id in (?)", userID).Scan(&res).Error
 	return res, err
 }
