@@ -252,6 +252,7 @@ func addVideoComment(videoID, userID uint, content string) (*responses.Comment, 
 	var res = responses.Comment{
 		ID:         int64(mr.ID),
 		Content:    mr.Content,
+		User:       responses.User{ID: int64(mr.UserID)},
 		CreateDate: mr.PublishDate.Format(CREATE_DATE_FMT),
 	}
 	fillACommentUserInfo(&res, *usrInfo)
