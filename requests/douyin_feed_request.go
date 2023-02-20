@@ -12,6 +12,7 @@ import (
 type DouyinFeedRequest struct {
 	LatestTime time.Time
 	Token      string
+	UserID     uint
 }
 
 func NewDouyinFeedRequest(c *gin.Context) *DouyinFeedRequest {
@@ -37,6 +38,10 @@ func (r *DouyinFeedRequest) check(c *gin.Context) {
 
 	token := c.Query("token")
 	r.Token = token
+	if userid := c.GetString("user_id"); userid != "" {
+		userID, _ := strconv.ParseUint(userid, 10, 64)
+		r.UserID = uint(userID)
+	}
 	log.Printf("token: %s, latestTime: %v", token, latestTime)
 
 }
