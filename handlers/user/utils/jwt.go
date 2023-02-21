@@ -19,7 +19,7 @@ type MyClaim struct { //jwt验证用
 	jwt.StandardClaims
 }
 
-// 签发一个token
+// GetUserToken 签发一个token
 func GetUserToken(username string, password string, userID uint, islogin bool) string {
 	//创建一个JWT
 	myclaim := MyClaim{
@@ -41,7 +41,7 @@ func GetUserToken(username string, password string, userID uint, islogin bool) s
 	return s
 }
 
-// 解析Token
+// ParseToken 解析Token
 func ParseToken(s string) (*MyClaim, error) {
 	token, err := jwt.ParseWithClaims(s, &MyClaim{},
 		func(t *jwt.Token) (interface{}, error) {
@@ -60,25 +60,25 @@ func ParseToken(s string) (*MyClaim, error) {
 	return nil, errors.New("token is invalid")
 }
 
-// 取出token中的userID
+// GetUserIDFromToken 取出token中的userID
 func GetUserIDFromToken(token string) uint {
 	claim, _ := ParseToken(token)
 	return StringToUint(claim.UserID)
 }
 
-// 取出token中的username
+// GetUsernameFromToken 取出token中的username
 func GetUsernameFromToken(token string) string {
 	claim, _ := ParseToken(token)
 	return claim.Username
 }
 
-// 取出token中的password
+// GetPasswordFromToken 取出token中的password
 func GetPasswordFromToken(token string) string {
 	claim, _ := ParseToken(token)
 	return claim.Password
 }
 
-// 取出token中的is_login。true代表已登录
+// GetIsLoginFromToken 取出token中的is_login。true代表已登录
 func GetIsLoginFromToken(token string) bool {
 	claim, _ := ParseToken(token)
 	return claim.IsLogin
