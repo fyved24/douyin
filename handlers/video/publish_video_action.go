@@ -30,6 +30,7 @@ func PublishVideoAction(c *gin.Context) {
 	coverFilename := name + ".jpeg"
 
 	endpointURL := models.MinIOClient.EndpointURL().String()
+	// 根据文件所在 Bucket 生成文件链接
 	videoFileURL := endpointURL + "/" + videoBucket + "/" + videoFilename
 	coverFileURL := endpointURL + "/" + imagesBucket + "/" + coverFilename
 	go func() {

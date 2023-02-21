@@ -65,7 +65,4 @@ func InitRouter(r *gin.Engine) {
 
 	}
 
-	// 文件服务
-	r.GET("/file/:filename", video.FileServer)
-
 }
