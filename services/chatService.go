@@ -6,16 +6,21 @@ import (
 	"fmt"
 	"github.com/fyved24/douyin/models"
 	"github.com/redis/go-redis/v9"
+	"strconv"
 
 	"log"
 )
 
 //获取聊天记录
-func GetChatLogWithCache(userID string, targetID string) (*[]models.Message, error) {
+func GetChatLogWithCache(userID int, targetID int) (*[]models.Message, error) {
 	//redisClient := middleware.NewRedisClient("47.93.10.203:6379", "zkrt", 2)
 	redisClient := models.RedisDB
-	defer redisClient.Close()
-
+	//defer redisClient.Close()
+	i := strconv.Itoa(userID)
+	j := strconv.Itoa(targetID)
+	if i == "" || j == "" {
+		return nil, nil
+	}
 	//messages, err := models.GetMessageByID(userID, targetID)
 	//if err != nil {
 	//	return nil, err
@@ -36,9 +41,14 @@ func GetChatLogWithCache(userID string, targetID string) (*[]models.Message, err
 }
 
 //发送消息存储
-func CreateMessage(userID string, targetID string, content string, actionType string) error {
+func CreateMessage(userID int, targetID int, content string, actionType string) error {
 	redisClient := models.RedisDB
-	defer redisClient.Close()
+	i := strconv.Itoa(userID)
+	j := strconv.Itoa(targetID)
+	if i == "" || j == "" {
+		return nil
+	}
+	//defer redisClient.Close()
 	m := &models.Message{
 		UserID:     userID,
 		TargetID:   targetID,
@@ -56,7 +66,7 @@ func CreateMessage(userID string, targetID string, content string, actionType st
 	return nil
 }
 
-func getChatLogFromCache(redisClient *redis.Client, userID string, targetID string) (*[]models.Message, error) {
+func getChatLogFromCache(redisClient *redis.Client, userID int, targetID int) (*[]models.Message, error) {
 	messageID, err := redisClient.Get(context.Background(), fmt.Sprintf("chat:%s:%s:messageID", userID, targetID)).Result()
 	if err != nil {
 		return nil, err
@@ -78,7 +88,7 @@ func getChatLogFromCache(redisClient *redis.Client, userID string, targetID stri
 	return &messages, nil
 }
 
-func setChatLogToCache(redisClient *redis.Client, userID string, targetID string, messages []models.Message) error {
+func setChatLogToCache(redisClient *redis.Client, userID int, targetID int, messages []models.Message) error {
 	messageID := messages[0].ID
 	key := fmt.Sprintf("chat:%s:%s:%s:", userID, targetID, messageID)
 	data, err := json.Marshal(messages)

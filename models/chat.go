@@ -1,16 +1,12 @@
 package models
 
-import (
-	"time"
-)
-
 type Message struct {
 	Model
-	UserID     string    `json:"from_user_id"`
-	TargetID   string    `json:"to_user_id"`
-	Content    string    `json:"content"`
-	ActionType string    `json:"-"`
-	CreatedAt  time.Time `json:"create_time"`
+	UserID     int    `json:"from_user_id"`
+	TargetID   int    `json:"to_user_id"`
+	Content    string `json:"content"`
+	ActionType string `json:"-"`
+	CreatedAt  int    `json:"create_time"`
 }
 
 func ChatMessageCreat(m *Message) error {
@@ -26,7 +22,7 @@ func ChatMessageCreat(m *Message) error {
 //	return lastMessage, nil
 //}
 
-func GetMessageByID(user_id, target_id string) (*[]Message, error) {
+func GetMessageByID(user_id, target_id int) (*[]Message, error) {
 	var messages []Message
 	if err := DB.Model(&Message{}).Where("user_id = ? AND target_id = ?", user_id, target_id).Find(&messages).Error; err != nil {
 		return nil, err
