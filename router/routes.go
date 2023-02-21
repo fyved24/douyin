@@ -18,7 +18,7 @@ func InitRouter(r *gin.Engine) {
 	douyinGroup := r.Group("/douyin")
 	{
 		// feed
-		douyinGroup.GET("/feed/", video.FeedVideoList)
+		douyinGroup.GET("/feed/", middleware.OptionalTokenJWT(), video.FeedVideoList)
 
 		publishGroup := douyinGroup.Group("publish")
 		publishGroup.Use(middleware.JWT())
@@ -34,7 +34,6 @@ func InitRouter(r *gin.Engine) {
 			relationGroup.POST("/action/", relation.RelationAction).Use()
 			relationGroup.GET("/follow/list/", relation.FollowList).Use(middleware.JWT())
 			relationGroup.GET("/follower/list/", relation.FollowerList).Use(middleware.JWT())
-			relationGroup.GET("/friend/list/", relation.FriendList).Use(middleware.JWT())
 		}
 
 		commentGroup := douyinGroup.Group("comment")
@@ -53,7 +52,7 @@ func InitRouter(r *gin.Engine) {
 		favoriteGroup := douyinGroup.Group("favorite")
 		favoriteGroup.Use(middleware.JWT())
 		{
-			favoriteGroup.POST("/action/", favorite.Favorite)
+			favoriteGroup.POST("/action/", middleware.DefaultLimit(), favorite.Favorite)
 			favoriteGroup.GET("/list/", favorite.FavoriteList)
 		}
 		//chat路由组

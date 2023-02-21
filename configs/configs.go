@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/fatih/color"
 	"github.com/spf13/viper"
+	"os"
 )
 
 var (
@@ -19,6 +20,7 @@ type ServerConfig struct {
 	RedisConfigs   RedisConfig   `mapstructure:"redis"`
 	LogsAddress    string        `mapstructure:"logsAddress"`
 	LimitIpConfigs LimitIpConfig `mapstructure:"limit_ip"`
+	MinIOConfigs   MinIOConfig   `mapstructure:"minio_config"`
 }
 
 type MysqlConfig struct {
@@ -40,11 +42,20 @@ type LimitIpConfig struct {
 	LimitTimeIP  int `mapstructure:"iplimit-time" json:"iplimit-time" yaml:"iplimit-time"`
 }
 
+type MinIOConfig struct {
+	Endpoint        string `mapstructure:"endpoint"`
+	AccessKeyID     string `mapstructure:"accessKeyID"`
+	SecretAccessKey string `mapstructure:"secretAccessKey"`
+	UseSSL          bool   `mapstructure:"useSSL"`
+}
+
 func InitConfig() {
 	// 实例化viper
 	v := viper.New()
 	//文件的路径如何设置
-	v.SetConfigFile("./configs-dev.yaml")
+
+	wd, _ := os.Getwd()
+	v.SetConfigFile(wd + "/configs-dev.yaml")
 	if err := v.ReadInConfig(); err != nil {
 		panic(err)
 	}

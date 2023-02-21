@@ -3,44 +3,56 @@ package video
 import (
 	"github.com/fyved24/douyin/models"
 	"github.com/fyved24/douyin/requests"
-	"github.com/fyved24/douyin/responses"
+	"github.com/fyved24/douyin/services/comment"
 	videoService "github.com/fyved24/douyin/services/video"
 	"github.com/fyved24/douyin/utils"
 	"github.com/gin-gonic/gin"
+	"github.com/minio/minio-go/v7"
 	"log"
 	"net/http"
 	"path/filepath"
 )
 
 var (
-	LocalStorage     = "local_storage/"
-	FileServerPrefix = "http://192.168.31.80:8080/file/"
+	videoBucket  = "videos"
+	imagesBucket = "images"
 )
 
 func PublishVideoAction(c *gin.Context) {
 	req := requests.NewDouyinPublishActionRequest(c)
-	file, _ := c.FormFile("data")
-	ext := filepath.Ext(file.Filename)
+	ctx := c.Copy()
+	fileHeader, _ := ctx.FormFile("data")
+	//copyContext := c.Copy()
+
+	ext := filepath.Ext(fileHeader.Filename)
 	name := utils.NewFileName(req.UserID)
 	videoFilename := name + ext
-	coverFilename := name + ".jpg"
+	coverFilename := name + ".jpeg"
 
-	videoFilePath := LocalStorage + videoFilename
-	videoFileURL := FileServerPrefix + videoFilename
+	endpointURL := models.MinIOClient.EndpointURL().String()
+	videoFileURL := endpointURL + "/" + videoBucket + "/" + videoFilename
+	coverFileURL := endpointURL + "/" + imagesBucket + "/" + coverFilename
+	go func() {
+		log.Printf("视频上传")
+		defer log.Printf("全部上传成功")
+		file, _ := fileHeader.Open()
+		defer file.Close()
+		object, err := models.MinIOClient.PutObject(ctx, videoBucket, videoFilename, file, fileHeader.Size, minio.PutObjectOptions{ContentType: "video/mp4"})
+		if err != nil {
+			log.Printf("视频上传出错 %v", err)
+			return
+		}
+		log.Printf("视频上传成功 %v", object)
 
-	coverFilePath := LocalStorage + coverFilename
-	coverFileURL := FileServerPrefix + coverFilename
-	err := c.SaveUploadedFile(file, videoFilePath)
-	err = utils.CutFirstFrameOfVideo(coverFilePath, videoFilePath)
+		imageBuff := utils.CutFirstFrameOfVideo(videoFileURL)
 
-	if err != nil {
-		log.Printf("err %v", err)
-		c.JSON(http.StatusInternalServerError, responses.CommonResponse{
-			StatusCode: 1,
-			StatusMsg:  "获取封面失败",
-		})
-		return
-	}
+		object, err = models.MinIOClient.PutObject(ctx, imagesBucket, coverFilename, imageBuff, int64(imageBuff.Len()), minio.PutObjectOptions{ContentType: "image/jpeg"})
+		if err != nil {
+			log.Printf("视频封面上传出错 %v", err)
+			return
+		}
+	}()
+
 	video := &models.Video{
 		AuthorID: req.UserID,
 		PlayUrl:  videoFileURL,
@@ -49,4 +61,10 @@ func PublishVideoAction(c *gin.Context) {
 	}
 	publishVideosRes, _ := videoService.SavePublishVideo(video)
 	c.JSON(http.StatusOK, publishVideosRes)
+	// 发布视频成功时更新本地缓存中用户信息的作品数
+	comment.ChangeUserCacheWorkCount(req.UserID)
+}
+
+func Upload() {
+
 }
