@@ -35,9 +35,9 @@ limit_ip:
   iplimit-time: 120
 
 minio_config:
-  endpoint: "192.168.31.80:9000"
-  accessKeyID: "admin"
-  secretAccessKey: "password"
+  endpoint: "101.200.137.5:9001"
+  accessKeyID: "minioadmin"
+  secretAccessKey: "minioadmin"
   useSSL:  false
 
 # timer task db

@@ -1,7 +1,6 @@
 package video
 
 import (
-	"context"
 	"github.com/fyved24/douyin/models"
 	"github.com/fyved24/douyin/requests"
 	"github.com/fyved24/douyin/services/comment"
@@ -12,7 +11,6 @@ import (
 	"log"
 	"net/http"
 	"path/filepath"
-	"time"
 )
 
 var (
@@ -22,12 +20,10 @@ var (
 
 func PublishVideoAction(c *gin.Context) {
 	req := requests.NewDouyinPublishActionRequest(c)
-	fileHeader, _ := c.FormFile("data")
-	ctx, _ := context.WithTimeout(context.Background(), 60*time.Second)
+	ctx := c.Copy()
+	fileHeader, _ := ctx.FormFile("data")
 	//copyContext := c.Copy()
 
-	file, _ := fileHeader.Open()
-	defer file.Close()
 	ext := filepath.Ext(fileHeader.Filename)
 	name := utils.NewFileName(req.UserID)
 	videoFilename := name + ext
@@ -38,9 +34,12 @@ func PublishVideoAction(c *gin.Context) {
 	coverFileURL := endpointURL + "/" + imagesBucket + "/" + coverFilename
 	go func() {
 		log.Printf("视频上传")
-
+		defer log.Printf("全部上传成功")
+		file, _ := fileHeader.Open()
+		defer file.Close()
 		object, err := models.MinIOClient.PutObject(ctx, videoBucket, videoFilename, file, fileHeader.Size, minio.PutObjectOptions{ContentType: "video/mp4"})
 		if err != nil {
+			log.Printf("视频上传出错 %v", err)
 			return
 		}
 		log.Printf("视频上传成功 %v", object)
@@ -49,9 +48,9 @@ func PublishVideoAction(c *gin.Context) {
 
 		object, err = models.MinIOClient.PutObject(ctx, imagesBucket, coverFilename, imageBuff, int64(imageBuff.Len()), minio.PutObjectOptions{ContentType: "image/jpeg"})
 		if err != nil {
+			log.Printf("视频封面上传出错 %v", err)
 			return
 		}
-		log.Printf("封面上传成功 %v", object)
 	}()
 
 	video := &models.Video{
