@@ -7,13 +7,7 @@ import (
 	"gorm.io/gorm"
 )
 
-// 粉丝表
-var followers = "followers"
-
-// 用户表
-var users = "users"
-
-// IsFollower 判断HostId是否有GuestId这个粉丝
+// 判断HostId是否有GuestId这个粉丝
 func IsFollower(HostId uint, GuestId uint) bool {
 	//1.数据模型准备
 	var relationExist = &models.Follower{}
@@ -28,7 +22,7 @@ func IsFollower(HostId uint, GuestId uint) bool {
 	return true
 }
 
-// IncreaseFollowerCount 增加HostId的粉丝数（Host_id 的 follow_count+1）
+// 增加HostId的粉丝数
 func IncreaseFollowerCount(HostId uint) error {
 	if err := models.DB.Model(&models.User{}).
 		Where("id=?", HostId).
@@ -38,7 +32,7 @@ func IncreaseFollowerCount(HostId uint) error {
 	return nil
 }
 
-// DecreaseFollowerCount 增加HostId的粉丝数（Host_id 的 follow_count-1）
+// 减少HostId的粉丝数
 func DecreaseFollowerCount(HostId uint) error {
 	if err := models.DB.Model(&models.User{}).
 		Where("id=?", HostId).
@@ -48,16 +42,16 @@ func DecreaseFollowerCount(HostId uint) error {
 	return nil
 }
 
-// CreateFollower 创建粉丝
+// 新增粉丝
 func CreateFollower(HostId uint, GuestId uint) error {
 
-	//1.Following数据模型准备
+	//1.Follower数据准备
 	newFollower := models.Follower{
 		HostID:     HostId,
 		FollowerID: GuestId,
 	}
 
-	//2.新建following
+	//2.新建follower
 	if err := models.DB.Model(&models.Follower{}).
 		Create(&newFollower).Error; err != nil {
 		return err
@@ -65,15 +59,15 @@ func CreateFollower(HostId uint, GuestId uint) error {
 	return nil
 }
 
-// DeleteFollower 删除粉丝
+// 删除粉丝
 func DeleteFollower(HostId uint, GuestId uint) error {
-	//1.Following数据模型准备
+	//1.Follower数据准备
 	newFollower := models.Follower{
 		HostID:     HostId,
 		FollowerID: GuestId,
 	}
 
-	//2.删除following
+	//2.删除follower
 	if err := models.DB.Model(&models.Follower{}).
 		Where("host_id=? AND follower_id=?", HostId, GuestId).
 		Delete(&newFollower).Error; err != nil {
@@ -83,16 +77,26 @@ func DeleteFollower(HostId uint, GuestId uint) error {
 	return nil
 }
 
-// FollowerList  获取粉丝表
+// 获取粉丝表
 func FollowerList(HostId uint) ([]models.User, error) {
-	//1.userList数据模型准备
+
 	var userList []models.User
-	//2.查HostId的关注表
+
+	// 1.获取粉丝id列表
+	var followerIdList []uint
+	if err := models.DB.Model(&models.Follower{}).
+		Select("follower_id").
+		Where("host_id = ?", HostId).
+		Scan(&followerIdList).Error; err != nil {
+		return userList, nil
+	}
+
+	// 2.根据粉丝id列表，在user表中查询
 	if err := models.DB.Model(&models.User{}).
-		Joins("left join "+followers+" on "+users+".id = "+followers+".follower_id").
-		Where(followers+".host_id=? AND "+followers+".deleted_at is null", HostId).
+		Where("id IN ?", followerIdList).
 		Scan(&userList).Error; err != nil {
 		return userList, nil
 	}
+
 	return userList, nil
 }
