@@ -8,7 +8,7 @@ import (
 
 // JWT验证拦截，若token解析失败则无视，解析成功则返回userID。使用方法：路由组.Use()。
 // 根据token获取userID和userName可参考user/user.go中Info函数里面的代码
-func specialJWT() gin.HandlerFunc {
+func OptionalTokenJWT() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		token := c.Query("token")
 		if token == "" {
@@ -18,6 +18,7 @@ func specialJWT() gin.HandlerFunc {
 		//并未获取到token，直接无视
 		if token == "" {
 			c.Next()
+			return
 		}
 
 		claims, err := utils.ParseToken(token)

@@ -90,7 +90,7 @@ func InitMinIO() {
 
 func InitDB() {
 	var err error
-	dsn := "root:123456@tcp(127.0.0.1:3306)/douyin?charset=utf8mb4&parseTime=True&loc=Local"
+	dsn := "douyin:douyinxiangmu@tcp(101.43.131.38:3306)/douyin?charset=utf8mb4&parseTime=True&loc=Local"
 	DB, err = gorm.Open(mysql.Open(dsn), &gorm.Config{})
 	DB.Set("gorm:table_options", "ENGINE=InnoDB")
 	if err != nil {

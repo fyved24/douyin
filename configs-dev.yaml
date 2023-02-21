@@ -35,7 +35,7 @@ limit_ip:
   iplimit-time: 120
 
 minio_config:
-  endpoint: "101.200.137.5:9001"
+  endpoint: "101.43.131.38:9000"
   accessKeyID: "minioadmin"
   secretAccessKey: "minioadmin"
   useSSL:  false

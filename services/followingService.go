@@ -4,14 +4,10 @@ import (
 	"errors"
 
 	"github.com/fyved24/douyin/models"
-	"github.com/fyved24/douyin/responses"
 	"gorm.io/gorm"
 )
 
-// 关注表
-var followings = "followings"
-
-// IsFollowing 判断HostId是否关注GuestId
+// 判断HostId是否关注GuestId
 func IsFollowing(HostId uint, GuestId uint) bool {
 	var relationExist = &models.Following{}
 	//判断关注是否存在
@@ -25,7 +21,7 @@ func IsFollowing(HostId uint, GuestId uint) bool {
 	return true
 }
 
-// IncreaseFollowCount 增加HostId的关注数（Host_id 的 follow_count+1）
+// 增加HostId的关注数
 func IncreaseFollowCount(HostId uint) error {
 	if err := models.DB.Model(&models.User{}).
 		Where("id=?", HostId).
@@ -35,7 +31,7 @@ func IncreaseFollowCount(HostId uint) error {
 	return nil
 }
 
-// DecreaseFollowCount 减少HostId的关注数（Host_id 的 follow_count-1）
+// 减少HostId的关注数
 func DecreaseFollowCount(HostId uint) error {
 	if err := models.DB.Model(&models.User{}).
 		Where("id=?", HostId).
@@ -45,31 +41,26 @@ func DecreaseFollowCount(HostId uint) error {
 	return nil
 }
 
-// CreateFollowing 创建关注
+// 新增关注
 func CreateFollowing(HostId uint, GuestId uint) error {
-
-	//1.Following数据模型准备
 	newFollowing := models.Following{
 		HostID:   HostId,
 		FollowID: GuestId,
 	}
 
-	//2.新建following
 	if err := models.DB.Model(&models.Following{}).Create(&newFollowing).Error; err != nil {
 		return err
 	}
 	return nil
 }
 
-// DeleteFollowing 删除关注
+// 删除关注
 func DeleteFollowing(HostId uint, GuestId uint) error {
-	//1.Following数据模型准备
 	deleteFollowing := models.Following{
 		HostID:   HostId,
 		FollowID: GuestId,
 	}
 
-	//2.删除following
 	if err := models.DB.Model(&models.Following{}).Where("host_id=? AND follow_id=?", HostId, GuestId).Delete(&deleteFollowing).Error; err != nil {
 		return err
 	}
@@ -77,35 +68,49 @@ func DeleteFollowing(HostId uint, GuestId uint) error {
 	return nil
 }
 
-// FollowAction 关注操作
+// 实现关注操作 host关注guest
 func FollowAction(HostId uint, GuestId uint, actionType uint) error {
-	//创建关注操作
+	//关注操作
 	if actionType == 1 {
 		//判断关注是否存在
 		if IsFollowing(HostId, GuestId) {
-			//关注存在
-			return responses.ErrorRelationExit
+			//关注已存在
+			return errors.New("关注已存在")
 		} else {
 			//关注不存在,创建关注(启用事务Transaction)
-			err1 := models.DB.Transaction(func(db *gorm.DB) error {
-				err := CreateFollowing(HostId, GuestId)
-				if err != nil {
+			err1 := models.DB.Transaction(func(tx *gorm.DB) error {
+				// 新增关注 host关注guest
+				if err := tx.Model(&models.Following{}).
+					Create(&models.Following{
+						HostID:   HostId,
+						FollowID: GuestId,
+					}).Error; err != nil {
 					return err
 				}
-				err = CreateFollower(GuestId, HostId)
-				if err != nil {
+
+				// 新增粉丝 host是guest粉丝
+				if err := tx.Model(&models.Follower{}).
+					Create(&models.Follower{
+						HostID:     GuestId,
+						FollowerID: HostId,
+					}).Error; err != nil {
 					return err
 				}
-				//增加host_id的关注数
-				err = IncreaseFollowCount(HostId)
-				if err != nil {
+
+				//增加host的关注数
+				if err := tx.Model(&models.User{}).
+					Where("id=?", HostId).
+					Update("follow_count", gorm.Expr("follow_count+?", 1)).Error; err != nil {
 					return err
 				}
-				//增加follow_id的粉丝数
-				err = IncreaseFollowerCount(GuestId)
-				if err != nil {
+
+				//增加guest的粉丝数
+				if err := tx.Model(&models.User{}).
+					Where("id=?", GuestId).
+					Update("follower_count", gorm.Expr("follower_count+?", 1)).Error; err != nil {
 					return err
 				}
+
 				return nil
 			})
 			if err1 != nil {
@@ -117,23 +122,34 @@ func FollowAction(HostId uint, GuestId uint, actionType uint) error {
 		//判断关注是否存在
 		if IsFollowing(HostId, GuestId) {
 			//关注存在,删除关注(启用事务Transaction)
-			if err1 := models.DB.Transaction(func(db *gorm.DB) error {
-				err := DeleteFollowing(HostId, GuestId)
-				if err != nil {
+			if err1 := models.DB.Transaction(func(tx *gorm.DB) error {
+				if err := tx.Model(&models.Following{}).
+					Where("host_id=? AND follow_id=?", HostId, GuestId).Delete(&models.Following{
+					HostID:   HostId,
+					FollowID: GuestId,
+				}).Error; err != nil {
 					return err
 				}
-				err = DeleteFollower(GuestId, HostId)
-				if err != nil {
+
+				if err := tx.Model(&models.Follower{}).
+					Where("host_id=? AND follower_id=?", GuestId, HostId).Delete(&models.Follower{
+					HostID:     GuestId,
+					FollowerID: HostId,
+				}).Error; err != nil {
 					return err
 				}
-				//减少host_id的关注数
-				err = DecreaseFollowCount(HostId)
-				if err != nil {
+
+				//减少host的关注数
+				if err := tx.Model(&models.User{}).
+					Where("id=?", HostId).
+					Update("follow_count", gorm.Expr("follow_count-?", 1)).Error; err != nil {
 					return err
 				}
-				//减少follow_id的粉丝数
-				err = DecreaseFollowerCount(GuestId)
-				if err != nil {
+
+				//减少guest的粉丝数
+				if err := tx.Model(&models.User{}).
+					Where("id=?", GuestId).
+					Update("follower_count", gorm.Expr("follower_count-?", 1)).Error; err != nil {
 					return err
 				}
 				return nil
@@ -143,7 +159,7 @@ func FollowAction(HostId uint, GuestId uint, actionType uint) error {
 
 		} else {
 			//关注不存在
-			return responses.ErrorRelationNull
+			return errors.New("关注不存在")
 		}
 	}
 	return nil
@@ -151,14 +167,24 @@ func FollowAction(HostId uint, GuestId uint, actionType uint) error {
 
 // FollowingList 获取关注表
 func FollowingList(HostId uint) ([]models.User, error) {
-	//1.userList数据模型准备
+
 	var userList []models.User
-	//2.查HostId的关注表
+
+	// 1.获取关注id列表
+	var followingIdList []uint
+	if err := models.DB.Model(&models.Following{}).
+		Select("follow_id").
+		Where("host_id = ?", HostId).
+		Scan(&followingIdList).Error; err != nil {
+		return userList, nil
+	}
+
+	// 2.根据关注id列表，在user表中查询
 	if err := models.DB.Model(&models.User{}).
-		Joins("left join "+followings+" on "+users+".id = "+followings+".follow_id").
-		Where(followings+".host_id=? AND "+followings+".deleted_at is null", HostId).
+		Where("id IN ?", followingIdList).
 		Scan(&userList).Error; err != nil {
 		return userList, nil
 	}
+
 	return userList, nil
 }
