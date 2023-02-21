@@ -183,7 +183,10 @@ func FollowAction(HostId uint, GuestId uint, actionType uint) error {
 			return errors.New("关注不存在")
 		}
 	}
-	return errors.New("actionType参数不合法")
+	if (actionType != 1) && (actionType != 2) {
+		return errors.New("actionType参数不合法")
+	}
+	return nil
 }
 
 // FollowingList 获取关注表
