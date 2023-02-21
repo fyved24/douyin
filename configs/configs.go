@@ -20,6 +20,7 @@ type ServerConfig struct {
 	RedisConfigs   RedisConfig   `mapstructure:"redis"`
 	LogsAddress    string        `mapstructure:"logsAddress"`
 	LimitIpConfigs LimitIpConfig `mapstructure:"limit_ip"`
+	MinIOConfigs   MinIOConfig   `mapstructure:"minio_config"`
 }
 
 type MysqlConfig struct {
@@ -39,6 +40,13 @@ type RedisConfig struct {
 type LimitIpConfig struct {
 	LimitCountIP int `mapstructure:"iplimit-count" json:"iplimit-count" yaml:"iplimit-count"`
 	LimitTimeIP  int `mapstructure:"iplimit-time" json:"iplimit-time" yaml:"iplimit-time"`
+}
+
+type MinIOConfig struct {
+	Endpoint        string `mapstructure:"endpoint"`
+	AccessKeyID     string `mapstructure:"accessKeyID"`
+	SecretAccessKey string `mapstructure:"secretAccessKey"`
+	UseSSL          bool   `mapstructure:"useSSL"`
 }
 
 func InitConfig() {

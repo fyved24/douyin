@@ -1,10 +1,7 @@
 package video
 
 import (
-	"log"
-	"net/http"
-	"path/filepath"
-
+	"context"
 	"github.com/fyved24/douyin/models"
 	"github.com/fyved24/douyin/requests"
 	"github.com/fyved24/douyin/responses"
@@ -12,28 +9,46 @@ import (
 	videoService "github.com/fyved24/douyin/services/video"
 	"github.com/fyved24/douyin/utils"
 	"github.com/gin-gonic/gin"
+	"github.com/minio/minio-go/v7"
+	"log"
+	"net/http"
+	"path/filepath"
+	"time"
 )
 
 var (
-	LocalStorage     = "local_storage/"
-	FileServerPrefix = "http://192.168.31.80:8080/file/"
+	videoBucket  = "videos"
+	imagesBucket = "images"
 )
 
 func PublishVideoAction(c *gin.Context) {
 	req := requests.NewDouyinPublishActionRequest(c)
-	file, _ := c.FormFile("data")
-	ext := filepath.Ext(file.Filename)
+	fileHeader, _ := c.FormFile("data")
+	ctx, _ := context.WithTimeout(context.Background(), 10*time.Second)
+	file, _ := fileHeader.Open()
+	defer file.Close()
+	ext := filepath.Ext(fileHeader.Filename)
 	name := utils.NewFileName(req.UserID)
 	videoFilename := name + ext
-	coverFilename := name + ".jpg"
+	coverFilename := name + ".jpeg"
+	object, err := models.MinIOClient.PutObject(ctx, videoBucket, videoFilename, file, fileHeader.Size, minio.PutObjectOptions{ContentType: "video/mp4"})
+	if err != nil {
+		return
+	}
+	log.Printf("视频上传成功 %v", object)
 
-	videoFilePath := LocalStorage + videoFilename
-	videoFileURL := FileServerPrefix + videoFilename
+	endpointURL := models.MinIOClient.EndpointURL().String()
+	videoFileURL := endpointURL + "/" + videoBucket + "/" + videoFilename
 
-	coverFilePath := LocalStorage + coverFilename
-	coverFileURL := FileServerPrefix + coverFilename
-	err := c.SaveUploadedFile(file, videoFilePath)
-	err = utils.CutFirstFrameOfVideo(coverFilePath, videoFilePath)
+	imageBuff := utils.CutFirstFrameOfVideo(videoFileURL)
+
+	object, err = models.MinIOClient.PutObject(ctx, imagesBucket, coverFilename, imageBuff, int64(imageBuff.Len()), minio.PutObjectOptions{ContentType: "image/jpeg"})
+	if err != nil {
+		return
+	}
+	log.Printf("视频上传成功 %v", object)
+
+	coverFileURL := endpointURL + "/" + imagesBucket + "/" + coverFilename
 
 	if err != nil {
 		log.Printf("err %v", err)

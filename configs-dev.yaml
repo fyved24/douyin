@@ -34,6 +34,12 @@ limit_ip:
   #  IP限制2分钟
   iplimit-time: 120
 
+minio_config:
+  endpoint: "192.168.31.80:9000"
+  accessKeyID: "admin"
+  secretAccessKey: "password"
+  useSSL:  false
+
 # timer task db
 Timer:
   start: true
