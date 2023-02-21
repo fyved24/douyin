@@ -45,7 +45,7 @@ func RelationAction(c *gin.Context) {
 	//2.自己关注/取消关注自己不合法
 	if hostId == guestId {
 		c.JSON(http.StatusOK, responses.CommonResponse{
-			StatusCode: 405,
+			StatusCode: 1,
 			StatusMsg:  "无法关注自己",
 		})
 		c.Abort()
