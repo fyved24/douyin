@@ -82,13 +82,6 @@ func FollowerList(HostId uint) ([]models.User, error) {
 
 	var userList []models.User
 
-	// 联表查询，不适合高数据量
-	// if err := models.DB.Model(&models.User{}).
-	// 	Joins("left join "+followers+" on "+users+".id = "+followers+".follower_id").
-	// 	Where(followers+".host_id=? AND "+followers+".deleted_at is null", HostId).
-	// 	Scan(&userList).Error; err != nil {
-	// 	return userList, nil
-	// }
 	// 1.获取粉丝id列表
 	var followerIdList []uint
 	if err := models.DB.Model(&models.Follower{}).
