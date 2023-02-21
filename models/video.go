@@ -25,6 +25,7 @@ func QueryFeedVideoListByLatestTime(limit int, latestTime time.Time, userID uint
 		return &videos, err
 
 	}
+	// 已登录状态，给视频文件添加点赞信息
 	for i := 0; i < len(videos); i++ {
 		var favorite Favorite
 		if DB.Model(&Favorite{}).Where("user_id = ? AND video_id = ?", userID, videos[i].ID).First(&favorite).Error == nil {
