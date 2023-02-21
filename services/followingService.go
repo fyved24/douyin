@@ -7,6 +7,20 @@ import (
 	"gorm.io/gorm"
 )
 
+// IsExistByID 根据用户ID判断用户是否存在
+func IsExistByID(id uint) bool {
+	var user = &models.User{}
+	//判断关注是否存在
+	if err := models.DB.Model(&models.User{}).
+		Where("id=?", id).
+		First(&user).Error; errors.Is(err, gorm.ErrRecordNotFound) {
+		//用户不存在
+		return false
+	}
+	//用户存在
+	return true
+}
+
 // 判断HostId是否关注GuestId
 func IsFollowing(HostId uint, GuestId uint) bool {
 	var relationExist = &models.Following{}
@@ -70,6 +84,11 @@ func DeleteFollowing(HostId uint, GuestId uint) error {
 
 // 实现关注操作 host关注guest
 func FollowAction(HostId uint, GuestId uint, actionType uint) error {
+	// 过滤被关注用户不存在的情况
+	if !IsExistByID(GuestId) {
+		return errors.New("关注/取消关注对象不存在")
+	}
+
 	//关注操作
 	if actionType == 1 {
 		//判断关注是否存在
@@ -101,6 +120,7 @@ func FollowAction(HostId uint, GuestId uint, actionType uint) error {
 				if err := tx.Model(&models.User{}).
 					Where("id=?", HostId).
 					Update("follow_count", gorm.Expr("follow_count+?", 1)).Error; err != nil {
+					print("增加host的关注数", err)
 					return err
 				}
 
@@ -108,6 +128,7 @@ func FollowAction(HostId uint, GuestId uint, actionType uint) error {
 				if err := tx.Model(&models.User{}).
 					Where("id=?", GuestId).
 					Update("follower_count", gorm.Expr("follower_count+?", 1)).Error; err != nil {
+					print("增加guest的粉丝数", err)
 					return err
 				}
 
@@ -162,7 +183,7 @@ func FollowAction(HostId uint, GuestId uint, actionType uint) error {
 			return errors.New("关注不存在")
 		}
 	}
-	return nil
+	return errors.New("actionType参数不合法")
 }
 
 // FollowingList 获取关注表

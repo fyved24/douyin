@@ -2,6 +2,8 @@ package models
 
 import (
 	"context"
+	"log"
+
 	"github.com/bsm/redislock"
 	"github.com/fyved24/douyin/configs"
 	"github.com/minio/minio-go/v7"
@@ -9,7 +11,6 @@ import (
 	"github.com/redis/go-redis/v9"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
-	"log"
 )
 
 var (
@@ -90,7 +91,7 @@ func InitMinIO() {
 
 func InitDB() {
 	var err error
-	dsn := "root:123456@tcp(127.0.0.1:3306)/douyin?charset=utf8mb4&parseTime=True&loc=Local"
+	dsn := "douyin:douyinxiangmu@tcp(101.43.131.38:3306)/douyin?charset=utf8mb4&parseTime=True&loc=Local"
 	DB, err = gorm.Open(mysql.Open(dsn), &gorm.Config{})
 	DB.Set("gorm:table_options", "ENGINE=InnoDB")
 	if err != nil {
