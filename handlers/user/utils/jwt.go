@@ -28,9 +28,9 @@ func GetUserToken(username string, password string, userID uint, islogin bool) s
 		UserID:   strconv.FormatUint(uint64(userID), 10),
 		IsLogin:  islogin,
 		StandardClaims: jwt.StandardClaims{
-			NotBefore: time.Now().Unix() - 60,         //生效时间
-			ExpiresAt: time.Now().Unix() + 2000*60*60, //失效时间，先设置为不过期
-			Issuer:    "douyin",                       //签发者
+			NotBefore: time.Now().Unix() - 60,      //生效时间
+			ExpiresAt: time.Now().Unix() + 2*60*60, //失效时间，2小时
+			Issuer:    "douyin",                    //签发者
 		},
 	}
 	jwtToken := jwt.NewWithClaims(jwt.SigningMethodHS256, myclaim) //创建token（未加密），第一个参数是加密方法，第二个参数时自己定义的结构体
