@@ -2,6 +2,8 @@ package models
 
 import (
 	"context"
+	"log"
+
 	"github.com/bsm/redislock"
 	"github.com/fyved24/douyin/configs"
 	"github.com/minio/minio-go/v7"
@@ -9,7 +11,6 @@ import (
 	"github.com/redis/go-redis/v9"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
-	"log"
 )
 
 var (

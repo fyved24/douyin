@@ -19,7 +19,7 @@ type MyClaim struct { //jwt验证用
 	jwt.StandardClaims
 }
 
-// 签发一个token
+// GetUserToken 签发一个token
 func GetUserToken(username string, password string, userID uint, islogin bool) string {
 	//创建一个JWT
 	myclaim := MyClaim{
@@ -28,9 +28,9 @@ func GetUserToken(username string, password string, userID uint, islogin bool) s
 		UserID:   strconv.FormatUint(uint64(userID), 10),
 		IsLogin:  islogin,
 		StandardClaims: jwt.StandardClaims{
-			NotBefore: time.Now().Unix() - 60,         //生效时间
-			ExpiresAt: time.Now().Unix() + 2000*60*60, //失效时间，先设置为不过期
-			Issuer:    "douyin",                       //签发者
+			NotBefore: time.Now().Unix() - 60,      //生效时间
+			ExpiresAt: time.Now().Unix() + 2*60*60, //失效时间，2小时
+			Issuer:    "douyin",                    //签发者
 		},
 	}
 	jwtToken := jwt.NewWithClaims(jwt.SigningMethodHS256, myclaim) //创建token（未加密），第一个参数是加密方法，第二个参数时自己定义的结构体
@@ -41,7 +41,7 @@ func GetUserToken(username string, password string, userID uint, islogin bool) s
 	return s
 }
 
-// 解析Token
+// ParseToken 解析Token
 func ParseToken(s string) (*MyClaim, error) {
 	token, err := jwt.ParseWithClaims(s, &MyClaim{},
 		func(t *jwt.Token) (interface{}, error) {
@@ -60,25 +60,25 @@ func ParseToken(s string) (*MyClaim, error) {
 	return nil, errors.New("token is invalid")
 }
 
-// 取出token中的userID
+// GetUserIDFromToken 取出token中的userID
 func GetUserIDFromToken(token string) uint {
 	claim, _ := ParseToken(token)
 	return StringToUint(claim.UserID)
 }
 
-// 取出token中的username
+// GetUsernameFromToken 取出token中的username
 func GetUsernameFromToken(token string) string {
 	claim, _ := ParseToken(token)
 	return claim.Username
 }
 
-// 取出token中的password
+// GetPasswordFromToken 取出token中的password
 func GetPasswordFromToken(token string) string {
 	claim, _ := ParseToken(token)
 	return claim.Password
 }
 
-// 取出token中的is_login。true代表已登录
+// GetIsLoginFromToken 取出token中的is_login。true代表已登录
 func GetIsLoginFromToken(token string) bool {
 	claim, _ := ParseToken(token)
 	return claim.IsLogin

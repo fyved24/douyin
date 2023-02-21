@@ -31,9 +31,10 @@ func InitRouter(r *gin.Engine) {
 		relationGroup := douyinGroup.Group("relation")
 		relationGroup.Use(middleware.JWT())
 		{
-			relationGroup.POST("/action/", relation.RelationAction).Use()
-			relationGroup.GET("/follow/list/", relation.FollowList).Use(middleware.JWT())
-			relationGroup.GET("/follower/list/", relation.FollowerList).Use(middleware.JWT())
+			relationGroup.POST("/action/", relation.RelationAction)
+			relationGroup.GET("/follow/list/", relation.FollowList)
+			relationGroup.GET("/follower/list/", relation.FollowerList)
+			relationGroup.GET("/friend/list/", relation.FriendList)
 		}
 
 		commentGroup := douyinGroup.Group("comment")
@@ -63,8 +64,5 @@ func InitRouter(r *gin.Engine) {
 		}
 
 	}
-
-	// 文件服务
-	r.GET("/file/:filename", video.FileServer)
 
 }
