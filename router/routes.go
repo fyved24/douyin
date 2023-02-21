@@ -18,7 +18,7 @@ func InitRouter(r *gin.Engine) {
 	douyinGroup := r.Group("/douyin")
 	{
 		// feed
-		douyinGroup.GET("/feed/", middleware.JWT(), video.FeedVideoList)
+		douyinGroup.GET("/feed/", middleware.OptionalTokenJWT(), video.FeedVideoList)
 
 		publishGroup := douyinGroup.Group("publish")
 		publishGroup.Use(middleware.JWT())
