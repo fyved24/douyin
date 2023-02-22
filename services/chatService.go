@@ -8,10 +8,9 @@ import (
 	"github.com/fyved24/douyin/models"
 	"github.com/redis/go-redis/v9"
 	"github.com/willf/bloom"
+	"log"
 	"strconv"
 	"time"
-
-	"log"
 )
 
 //获取聊天记录
@@ -30,24 +29,22 @@ func GetChatLogWithCache(userID int, targetID int) (*[]models.Message, error) {
 	//}
 	//return messages, nil
 	messages, err := getChatLogFromCache(redisClient, userID, targetID)
-	if err != nil {
-		//if err == redis.Nil {
-		//	//未找到key
-		//	return &[]models.Message{}, nil
+	fmt.Print(messages)
+	if messages == nil {
+		//messages, err = models.GetMessageByID(userID, targetID)
+		//if messages == nil {
+		//	return &[]models.Message{}, err
 		//}
-		messages, err = models.GetMessageByID(userID, targetID)
-		if err != nil {
-			return &[]models.Message{}, err
-		}
 		//err = setChatLogToCache(redisClient, userID, targetID, *messages)
 		//if err != nil {
 		//	log.Printf("Failed to set chat log to cache: %s", err)
 		//}
+		return nil, err
 	}
 
-	if len(*messages) == 0 {
-		return nil, nil
-	}
+	//if len(*messages) == 0 {
+	//	return nil, nil
+	//}
 	return messages, nil
 }
 
@@ -70,7 +67,7 @@ func CreateMessage(userID int, targetID int, content string, actionType string) 
 	if err != nil {
 		return err
 	}
-	err = setChatLogToCache(redisClient, userID, targetID, []models.Message{*m})
+	err = setChatLogToCache(redisClient, userID, targetID, *m)
 	if err != nil {
 		log.Printf("Failed to set chat log to cache: %s", err)
 	}
@@ -78,47 +75,48 @@ func CreateMessage(userID int, targetID int, content string, actionType string) 
 }
 
 func getChatLogFromCache(redisClient *redis.Client, userID int, targetID int) (*[]models.Message, error) {
-	//messageID, err := redisClient.Get(context.Background(), fmt.Sprintf("chat:%s:%s:messageID", userID, targetID)).Result()
-	//if err != nil {
-	//	return nil, err
-	//}
+
 	var bloomFilter *bloom.BloomFilter
 	bloomFilter = bloom.New(100000, 5)
-	// 查询数据库
-	messageID, err := redisClient.Get(context.Background(), fmt.Sprintf("chat:%d:%d:messageID", userID, targetID)).Result()
+	key := fmt.Sprintf("chat:%d:%d", userID, targetID)
+	//var messages []models.Message
+	result, err := redisClient.HGetAll(context.Background(), key).Result()
 	if err != nil {
 		return nil, err
 	}
 
-	data, err := redisClient.HGetAll(context.Background(), fmt.Sprintf("chat:%s:%s:%s", userID, targetID, messageID)).Result()
-	if err != nil {
-		return nil, err
-	}
-	var messages []models.Message
-	for _, messageData := range data {
+	messages := make([]models.Message, len(result))
+	i := 0
+	for _, value := range result {
 		var message models.Message
-		err = json.Unmarshal([]byte(messageData), &message)
+		//fmt.Print(value)
+		err = json.Unmarshal([]byte(value), &message)
 		if err != nil {
 			return nil, err
 		}
-		messages = append(messages, message)
+		//mID, _ := strconv.Atoi(messageID)
+		//message.ID = uint(mID)
+		messages[i] = message
+		i++
 	}
-	key := fmt.Sprintf("chat:%d:%d:messageID", userID, targetID)
-	if !bloomFilter.TestString(key) {
+
+	if messages == nil && !bloomFilter.TestString(key) {
 		return nil, nil
 	}
+	fmt.Print(messages)
 	return &messages, nil
 }
 
-func setChatLogToCache(redisClient *redis.Client, userID int, targetID int, messages []models.Message) error {
-	messageID := messages[0].ID
-	key := fmt.Sprintf("chat:%s:%s:%s:", userID, targetID, messageID)
+func setChatLogToCache(redisClient *redis.Client, userID int, targetID int, messages models.Message) error {
+	messageID := strconv.Itoa(int(messages.ID))
+	var key string
+	key = fmt.Sprintf("chat:%d:%d", userID, targetID)
 	data, err := json.Marshal(messages)
 	if err != nil {
 		return err
 	}
 
-	if err := redisClient.HSet(context.Background(), key, data, 0).Err(); err != nil {
+	if err := redisClient.HSet(context.Background(), key, messageID, data).Err(); err != nil {
 		return err
 	}
 	if err := redisClient.Expire(context.Background(), key, time.Hour).Err(); err != nil {
