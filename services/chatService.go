@@ -31,14 +31,17 @@ func GetChatLogWithCache(userID int, targetID int) (*[]models.Message, error) {
 	messages, err := getChatLogFromCache(redisClient, userID, targetID)
 	fmt.Print(messages)
 	if messages == nil {
-		//messages, err = models.GetMessageByID(userID, targetID)
-		//if messages == nil {
-		//	return &[]models.Message{}, err
-		//}
-		//err = setChatLogToCache(redisClient, userID, targetID, *messages)
-		//if err != nil {
-		//	log.Printf("Failed to set chat log to cache: %s", err)
-		//}
+		messages, err = models.GetMessageByID(userID, targetID)
+		if messages == nil {
+			return &[]models.Message{}, err
+		}
+		for _, message := range *messages {
+			err = setChatLogToCache(redisClient, userID, targetID, message)
+			if err != nil {
+				log.Printf("Failed to set chat log to cache: %s", err)
+			}
+		}
+
 		return nil, err
 	}
 
