@@ -2,11 +2,11 @@ package models
 
 type Message struct {
 	Model
-	UserID     int    `json:"from_user_id"`
-	TargetID   int    `json:"to_user_id"`
-	Content    string `json:"content"`
-	ActionType string `json:"-"`
-	CreatedAt  int    `json:"create_time"`
+	UserID     int    `json:"from_user_id" redis:"from_user_id"`
+	TargetID   int    `json:"to_user_id" redis:"to_user_id"`
+	Content    string `json:"content" redis:"content"`
+	ActionType string `json:"action_type"`
+	CreatedAt  int    `json:"create_time" redis:"create_time"`
 }
 
 func ChatMessageCreat(m *Message) error {
